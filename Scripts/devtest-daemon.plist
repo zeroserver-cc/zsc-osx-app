@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	THROWAWAY development/test fixture only - this is NOT part of the real
+	zsc-agent product and is never shipped or referenced by the built app.
+
+	Its only purpose: give AgentController/LaunchctlRunner a harmless, fake
+	LaunchDaemon to bootstrap/kickstart/bootout/query against, on a machine
+	where the real cc.zeroserver.agent isn't installed, so the exact same
+	launchctl code path used in production can be exercised for real. See
+	Scripts/devtest-daemon-install.sh / devtest-daemon-uninstall.sh and the
+	"Devtest daemon" section of CLAUDE.md.
+
+	Do not confuse cc.zeroserver.control-devtest with cc.zeroserver.agent.
+	-->
+	<key>Label</key>
+	<string>cc.zeroserver.control-devtest</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/sh</string>
+		<string>-c</string>
+		<string>while true; do sleep 3600; done</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<false/>
+</dict>
+</plist>

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>cc.zeroserver.control</string>
+	<key>CFBundleName</key>
+	<string>ZeroServer Control</string>
+	<key>CFBundleDisplayName</key>
+	<string>ZeroServer Control</string>
+	<key>CFBundleExecutable</key>
+	<string>ZeroServerControl</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<!-- Scripts/build-app-bundle.sh replaces these two placeholders on every
+	     build. Edit the version there (or pass VERSION=/BUILD= env vars),
+	     not here. -->
+	<key>CFBundleShortVersionString</key>
+	<string>__VERSION__</string>
+	<key>CFBundleVersion</key>
+	<string>__BUILD__</string>
+	<!-- This is what actually hides the Dock icon and app-switcher entry,
+	     making this a pure menu bar app. Only takes effect once the binary
+	     is running from inside a real .app bundle that has this Info.plist
+	     - `swift run` during development will still show a Dock icon. -->
+	<key>LSUIElement</key>
+	<true/>
+	<key>LSMinimumSystemVersion</key>
+	<string>13.0</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.utilities</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 ZeroServer.cc</string>
+	<!-- We shell out to osascript for "with administrator privileges"
+	     prompts (AgentController/LaunchctlRunner) and to /bin/launchctl
+	     directly for status checks. Neither needs an Apple Events
+	     entitlement/usage string since we're not scripting other apps,
+	     just running a fixed shell command - but AppleScript's admin-
+	     privileges prompt does need this app to be unsandboxed, which is
+	     the default for a plain SPM-built bundle (no entitlements file is
+	     applied unless one is explicitly signed in).
+	-->
+</dict>
+</plist>

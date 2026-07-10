@@ -1,0 +1,84 @@
+/* English (base/fallback localization). View-layer keys match the exact
+   literal used at the Text/Button/Toggle call site (SwiftUI's implicit
+   LocalizedStringKey convention). Model-layer/alert keys are explicit
+   symbolic strings passed to NSLocalizedString, used with String(format:)
+   wherever a value is interpolated in. See pt-BR.lproj/Localizable.strings
+   for the Portuguese translations these pair with. */
+
+/* MenuContentView.swift */
+"Settings…" = "Settings…";
+"Quit ZeroServer Control" = "Quit ZeroServer Control";
+
+/* SettingsView.swift */
+"Settings" = "Settings";
+"This Mac's Agent" = "This Mac's Agent";
+"Account" = "Account";
+"Not signed in" = "Not signed in";
+"Preferences" = "Preferences";
+"Launch at Login" = "Launch at Login";
+"Connection" = "Connection";
+"About" = "About";
+"Open zeroserver.cc" = "Open zeroserver.cc";
+"About ZeroServer Control" = "About ZeroServer Control";
+"connection.production" = "Production";
+"connection.local" = "Local";
+"about.version_format" = "Version %@ (%@)";
+
+/* RemoteNodesSectionView.swift */
+"Signing in…" = "Signing in…";
+"Sign in to control your ZeroServer nodes remotely." = "Sign in to control your ZeroServer nodes remotely.";
+"Sign In…" = "Sign In…";
+"Loading…" = "Loading…";
+"Retry" = "Retry";
+"No nodes yet." = "No nodes yet.";
+"Force Stop All Agents…" = "Force Stop All Agents…";
+"Sign Out" = "Sign Out";
+
+/* LoginView.swift / ZeroServerControlApp.swift (shared Window title) */
+"Sign In to ZeroServer" = "Sign In to ZeroServer";
+"Email" = "Email";
+"Password" = "Password";
+"Sign In" = "Sign In";
+
+/* RemoteNode.swift — RemoteNodeStatus.label */
+"status.offline" = "Offline";
+"status.registering" = "Registering…";
+"status.idle" = "Idle";
+"status.busy" = "Busy";
+"status.overloaded" = "Overloaded";
+"status.online" = "Online";
+
+/* RemoteNode.swift — statusHintLabel's paused suffix (%@ = status.label) */
+"status.paused_suffix" = "%@, Paused";
+
+/* ForceStopAllConfirmation.swift */
+"force_stop.title.singular" = "Force Stop This Node?";
+"force_stop.title.plural" = "Force Stop All %ld Nodes?";
+"force_stop.informative" = "This immediately exits the agent process on every node in your account. Unlike Pause, this cannot be undone remotely for any of them — each one can only come back via local/physical access, or its own next reboot.";
+"Cancel" = "Cancel";
+"Force Stop All" = "Force Stop All";
+
+/* AccountSession.swift */
+"Your session expired. Please sign in again." = "Your session expired. Please sign in again.";
+
+/* RemoteNode.swift — usageSummary's per-metric labels */
+"usage.cpu" = "CPU";
+"usage.ram" = "RAM";
+"usage.disk" = "DISK";
+
+/* AgentStatus.swift — shortLabel */
+"agent.not_installed" = "Not Installed";
+"agent.stopped" = "Stopped";
+"agent.starting" = "Starting…";
+"agent.running" = "Running";
+"agent.stopping" = "Stopping…";
+"agent.status_unknown" = "Status Unknown";
+
+/* StatusRowView.swift — caption (%d = pid) */
+"agent.pid_format" = "PID %d";
+
+/* SettingsView.swift — agentPrimaryAction */
+"zsc-agent isn't installed on this Mac." = "zsc-agent isn't installed on this Mac.";
+"Copy Install Command" = "Copy Install Command";
+"Start Agent" = "Start Agent";
+"Stop Agent" = "Stop Agent";

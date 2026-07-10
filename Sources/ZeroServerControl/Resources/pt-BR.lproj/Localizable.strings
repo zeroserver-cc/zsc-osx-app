@@ -1,0 +1,80 @@
+/* Portuguese (Brazil). AI-drafted translation — please review the wording
+   before treating this as final; it hasn't had a native-speaker pass yet. */
+
+/* MenuContentView.swift */
+"Settings…" = "Configurações…";
+"Quit ZeroServer Control" = "Sair do ZeroServer Control";
+
+/* SettingsView.swift */
+"Settings" = "Configurações";
+"This Mac's Agent" = "Agente Deste Mac";
+"Account" = "Conta";
+"Not signed in" = "Não conectado";
+"Preferences" = "Preferências";
+"Launch at Login" = "Abrir no Login";
+"Connection" = "Conexão";
+"About" = "Sobre";
+"Open zeroserver.cc" = "Abrir zeroserver.cc";
+"About ZeroServer Control" = "Sobre o ZeroServer Control";
+"connection.production" = "Produção";
+"connection.local" = "Local";
+"about.version_format" = "Versão %@ (%@)";
+
+/* RemoteNodesSectionView.swift */
+"Signing in…" = "Entrando…";
+"Sign in to control your ZeroServer nodes remotely." = "Entre para controlar remotamente os nós do seu ZeroServer.";
+"Sign In…" = "Entrar…";
+"Loading…" = "Carregando…";
+"Retry" = "Tentar novamente";
+"No nodes yet." = "Nenhum nó ainda.";
+"Force Stop All Agents…" = "Forçar Parada de Todos os Agentes…";
+"Sign Out" = "Sair da Conta";
+
+/* LoginView.swift / ZeroServerControlApp.swift (shared Window title) */
+"Sign In to ZeroServer" = "Entrar no ZeroServer";
+"Email" = "E-mail";
+"Password" = "Senha";
+"Sign In" = "Entrar";
+
+/* RemoteNode.swift — RemoteNodeStatus.label */
+"status.offline" = "Offline";
+"status.registering" = "Registrando…";
+"status.idle" = "Ocioso";
+"status.busy" = "Ocupado";
+"status.overloaded" = "Sobrecarregado";
+"status.online" = "Online";
+
+/* RemoteNode.swift — statusHintLabel's paused suffix (%@ = status.label) */
+"status.paused_suffix" = "%@, Pausado";
+
+/* ForceStopAllConfirmation.swift */
+"force_stop.title.singular" = "Forçar Parada Deste Nó?";
+"force_stop.title.plural" = "Forçar Parada de Todos os %ld Nós?";
+"force_stop.informative" = "Isso encerra imediatamente o processo do agente em todos os nós da sua conta. Diferente de Pausar, essa ação não pode ser desfeita remotamente para nenhum deles — cada um só volta a funcionar com acesso local/físico, ou na próxima reinicialização.";
+"Cancel" = "Cancelar";
+"Force Stop All" = "Forçar Parada de Todos";
+
+/* AccountSession.swift */
+"Your session expired. Please sign in again." = "Sua sessão expirou. Faça login novamente.";
+
+/* RemoteNode.swift — usageSummary's per-metric labels */
+"usage.cpu" = "CPU";
+"usage.ram" = "RAM";
+"usage.disk" = "DISCO";
+
+/* AgentStatus.swift — shortLabel */
+"agent.not_installed" = "Não Instalado";
+"agent.stopped" = "Parado";
+"agent.starting" = "Iniciando…";
+"agent.running" = "Em Execução";
+"agent.stopping" = "Parando…";
+"agent.status_unknown" = "Status Desconhecido";
+
+/* StatusRowView.swift — caption (%d = pid) */
+"agent.pid_format" = "PID %d";
+
+/* SettingsView.swift — agentPrimaryAction */
+"zsc-agent isn't installed on this Mac." = "O zsc-agent não está instalado neste Mac.";
+"Copy Install Command" = "Copiar Comando de Instalação";
+"Start Agent" = "Iniciar Agente";
+"Stop Agent" = "Parar Agente";
