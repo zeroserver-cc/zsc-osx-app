@@ -27,4 +27,18 @@ func runAPIEnvironmentTests(_ t: TestRunner) {
         setenv(envKey, "http://localhost:3001", 1)
         t.expectEqual(APIEnvironment.displayName, "Local", "the actual override URL must never be surfaced in the UI")
     }
+
+    // M1 (security audit): isOverridden drives the menu bar badge
+    // (ZeroServerControlApp.swift) and Settings' Connection row color — the
+    // only persistent, hard-to-miss cue that traffic (including the login
+    // password) isn't going to production.
+    t.run("isOverridden is false when no override is set") {
+        unsetenv(envKey)
+        t.expect(!APIEnvironment.isOverridden, "no override set -> not overridden")
+    }
+
+    t.run("isOverridden is true when ZSC_CONTROL_API_BASE_URL is set") {
+        setenv(envKey, "http://localhost:3001", 1)
+        t.expect(APIEnvironment.isOverridden, "override set -> overridden")
+    }
 }

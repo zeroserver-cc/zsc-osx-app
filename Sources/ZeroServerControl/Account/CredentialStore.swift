@@ -56,7 +56,11 @@ enum CredentialStore {
             // Available once the Mac's been unlocked once since boot;
             // explicitly NOT synced to iCloud Keychain — a refresh token
             // shouldn't silently roam to every device on this Apple ID.
-            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
+            // ThisDeviceOnly (M2, security audit): without it, the item is
+            // eligible for inclusion in encrypted backups and restorable
+            // via Migration Assistant onto a different Mac, extending the
+            // token's exposure window beyond this one device.
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         ]
         let status = SecItemAdd(query as CFDictionary, nil)
         guard status == errSecSuccess else { throw KeychainError.unhandled(status) }

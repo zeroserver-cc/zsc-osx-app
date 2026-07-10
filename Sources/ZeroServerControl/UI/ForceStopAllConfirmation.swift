@@ -31,7 +31,7 @@ enum ForceStopAllConfirmation {
         // destructive (red-tinted) so Return can never accidentally
         // trigger the irreversible action.
         alert.addButton(withTitle: NSLocalizedString("Cancel", value: "Cancel", comment: ""))
-        let confirmButton = alert.addButton(withTitle: NSLocalizedString("Force Stop All", value: "Force Stop All", comment: ""))
+        let confirmButton = alert.addButton(withTitle: ForceStopWording.confirmButtonLabel(nodeCount: nodeCount))
         confirmButton.hasDestructiveAction = true
 
         NSApp.activate(ignoringOtherApps: true)

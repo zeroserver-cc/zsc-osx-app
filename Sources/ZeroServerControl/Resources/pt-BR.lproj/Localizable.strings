@@ -4,6 +4,7 @@
 /* MenuContentView.swift */
 "Settings…" = "Configurações…";
 "Quit ZeroServer Control" = "Sair do ZeroServer Control";
+"menu.settings_hint.unknown" = "O agente deste Mac precisa de atenção.";
 
 /* SettingsView.swift */
 "Settings" = "Configurações";
@@ -27,7 +28,6 @@
 "Loading…" = "Carregando…";
 "Retry" = "Tentar novamente";
 "No nodes yet." = "Nenhum nó ainda.";
-"Force Stop All Agents…" = "Forçar Parada de Todos os Agentes…";
 "Sign Out" = "Sair da Conta";
 
 /* LoginView.swift / ZeroServerControlApp.swift (shared Window title) */
@@ -52,15 +52,26 @@
 "force_stop.title.plural" = "Forçar Parada de Todos os %ld Nós?";
 "force_stop.informative" = "Isso encerra imediatamente o processo do agente em todos os nós da sua conta. Diferente de Pausar, essa ação não pode ser desfeita remotamente para nenhum deles — cada um só volta a funcionar com acesso local/físico, ou na próxima reinicialização.";
 "Cancel" = "Cancelar";
-"Force Stop All" = "Forçar Parada de Todos";
+"force_stop.button.singular" = "Forçar Parada Deste Agente…";
+"force_stop.button.plural" = "Forçar Parada de Todos os %ld Agentes…";
+"force_stop.confirm_button.singular" = "Forçar Parada";
+"force_stop.confirm_button.plural" = "Forçar Parada de Todos";
 
-/* AccountSession.swift */
-"Your session expired. Please sign in again." = "Sua sessão expirou. Faça login novamente.";
+/* PresentableError.swift — used by AccountSession.swift, RemoteNodesController.swift */
+"error.session_expired" = "Sua sessão expirou. Faça login novamente.";
+"error.generic_request_failed" = "Algo deu errado. Tente novamente.";
+"error.network" = "Não foi possível conectar ao servidor. Verifique sua conexão com a internet e tente novamente.";
+"error.malformed_response" = "Algo deu errado ao falar com o servidor. Tente novamente.";
+"error.server_trouble" = "O servidor está com problemas agora. Tente novamente em um instante.";
 
 /* RemoteNode.swift — usageSummary's per-metric labels */
 "usage.cpu" = "CPU";
 "usage.ram" = "RAM";
 "usage.disk" = "DISCO";
+
+/* RemoteNodeRowView.swift — accessibility */
+"accessibility.remote_node.pause_hint" = "Pausar este nó";
+"accessibility.remote_node.resume_hint" = "Retomar este nó";
 
 /* AgentStatus.swift — shortLabel */
 "agent.not_installed" = "Não Instalado";

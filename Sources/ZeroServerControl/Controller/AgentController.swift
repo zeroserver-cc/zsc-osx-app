@@ -173,6 +173,11 @@ final class AgentController: ObservableObject {
     }
 
     private func stopAgent() async {
+        // Mirrors startAgent()'s guard — hardening, not a live bug today:
+        // performPrimaryAction() only calls this from `.running`, but this
+        // makes that invariant explicit here too rather than relying solely
+        // on the caller's switch statement never changing.
+        guard case .running = status else { return }
         isActionInFlight = true
         status = .stopping
         defer { isActionInFlight = false }

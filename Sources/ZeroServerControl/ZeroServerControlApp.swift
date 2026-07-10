@@ -30,9 +30,27 @@ struct ZeroServerControlApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuContentView(session: accountSession, remoteNodes: remoteNodes)
+            MenuContentView(session: accountSession, remoteNodes: remoteNodes, agent: agent)
         } label: {
+            // M1 (security audit): ZSC_CONTROL_API_BASE_URL redirects every
+            // request — including the login password — away from
+            // production. This overlay is the one cue that's always visible
+            // (not just a buried Settings row) whenever that's active, so a
+            // redirected session is never silently indistinguishable from a
+            // normal one at a glance. Unlike MenuContentView/RemoteNodeRowView
+            // (hosted inside the native NSMenu, where hover/VStack/Image
+            // compositing all misbehaved this session), this label is the
+            // status item's own SwiftUI content — a completely different
+            // hosting context where .overlay works exactly as documented.
             MenuBarIconProvider.image(for: agent.status)
+                .overlay(alignment: .bottomTrailing) {
+                    if APIEnvironment.isOverridden {
+                        Circle()
+                            .fill(Color.orange)
+                            .frame(width: 6, height: 6)
+                            .overlay(Circle().stroke(Color.black.opacity(0.4), lineWidth: 0.5))
+                    }
+                }
         }
         // .menu renders the dropdown as a native NSMenu (plain list of
         // items, dividers, etc.) rather than a custom floating panel —

@@ -79,11 +79,28 @@ final class RemoteNodesController: ObservableObject {
             // until that fix, and was visibly reshuffling on every poll as
             // a result — sorting independently client-side means this
             // list's order can never regress again even if the backend
-            // does, for this or any future query.
-            nodes = try await apiClient.myMachines().sorted { $0.createdAt < $1.createdAt }
+            // does, for this or any future query. `id` is a secondary,
+            // fully deterministic tie-break: `sorted` is stable, but that
+            // only preserves *this poll's* input order for two nodes
+            // sharing the exact same createdAt (seed data, a
+            // batch-provisioned fleet) — without a real tie-break, those
+            // two rows could still swap position every poll if the
+            // backend's own tie order isn't identical across separate
+            // queries, reintroducing the exact symptom this sort exists
+            // to eliminate.
+            let freshNodes = try await apiClient.myMachines()
+                .sorted { ($0.createdAt, $0.id) < ($1.createdAt, $1.id) }
+            nodes = freshNodes
+            // H5 (correctness audit): without this, actionStates grows
+            // forever for any node deleted server-side while an action
+            // was in flight for it (performAction's nodes.firstIndex
+            // lookup already silently drops the nodes-array update in
+            // that case, but nothing removed the actionStates entry).
+            let currentIds = Set(freshNodes.map(\.id))
+            actionStates = actionStates.filter { currentIds.contains($0.key) }
             lastFetchError = nil
         } catch {
-            lastFetchError = error.localizedDescription
+            lastFetchError = PresentableError.message(for: error)
             // Deliberately keep showing the last-known `nodes` rather than
             // clearing them on a transient failure — flashing to an empty
             // list on every hiccup would be worse UX than slightly stale data.
@@ -107,17 +124,39 @@ final class RemoteNodesController: ObservableObject {
         await performAction(nodeId: nodeId) { try await self.apiClient.forceStopMachine(id: nodeId) }
     }
 
-    /// Force-stops every node currently in `nodes`, one at a time, reusing
+    /// M3 (correctness audit): a provider account can have a couple
+    /// hundred nodes; running forceStopAll() one mutation at a time would
+    /// lock the bulk button (and the account's whole "stop everything"
+    /// intent) for well over a minute. Bounded rather than unbounded
+    /// concurrency — mirrors the httpMaxConnectionsPerHost-style ceilings
+    /// most HTTP stacks apply, so this can't itself look like a
+    /// self-inflicted burst against the backend.
+    private static let maxConcurrentForceStops = 8
+
+    /// Force-stops every node currently in `nodes`, reusing
     /// forceStop(nodeId:) unchanged — each node's own actionStates entry
-    /// updates as the loop reaches it, so partial failures (e.g. a node
+    /// updates as its task reaches it, so partial failures (e.g. a node
     /// that's already offline) surface per-row automatically, with no new
     /// per-node state needed here. The UI layer (ForceStopAllConfirmation)
     /// must have already gotten explicit confirmation before calling this,
     /// same convention as the single-node forceStop.
     func forceStopAll() async {
         isForceStoppingAll = true
-        for node in nodes {
-            await forceStop(nodeId: node.id)
+        let nodeIds = nodes.map(\.id)
+        await withTaskGroup(of: Void.self) { group in
+            var nextIndex = 0
+            func startNext() {
+                guard nextIndex < nodeIds.count else { return }
+                let nodeId = nodeIds[nextIndex]
+                nextIndex += 1
+                group.addTask { await self.forceStop(nodeId: nodeId) }
+            }
+            for _ in 0..<min(Self.maxConcurrentForceStops, nodeIds.count) {
+                startNext()
+            }
+            while await group.next() != nil {
+                startNext()
+            }
         }
         isForceStoppingAll = false
     }
@@ -138,7 +177,7 @@ final class RemoteNodesController: ObservableObject {
             if let idx = nodes.firstIndex(where: { $0.id == nodeId }) { nodes[idx] = updated }
             actionStates[nodeId] = NodeActionState(isInFlight: false, errorMessage: nil)
         } catch {
-            actionStates[nodeId] = NodeActionState(isInFlight: false, errorMessage: error.localizedDescription)
+            actionStates[nodeId] = NodeActionState(isInFlight: false, errorMessage: PresentableError.message(for: error))
         }
     }
 }

@@ -174,21 +174,32 @@ extension RemoteNode {
             UsageMetric(
                 iconSystemName: "cpu",
                 label: NSLocalizedString("usage.cpu", value: "CPU", comment: "Resource usage label"),
-                percent: Int(usage.cpuPercent.rounded())
+                percent: Self.clampedPercent(usage.cpuPercent)
             ),
             UsageMetric(
                 iconSystemName: "memorychip",
                 label: NSLocalizedString("usage.ram", value: "RAM", comment: "Resource usage label"),
-                percent: Int(usage.memoryPercent.rounded())
+                percent: Self.clampedPercent(usage.memoryPercent)
             )
         ]
         if let diskPercent = usage.diskPercent {
             metrics.append(UsageMetric(
                 iconSystemName: "internaldrive",
                 label: NSLocalizedString("usage.disk", value: "DISK", comment: "Resource usage label"),
-                percent: Int(diskPercent.rounded())
+                percent: Self.clampedPercent(diskPercent)
             ))
         }
         return metrics
+    }
+
+    /// `Int(someDouble.rounded())` traps (crashes) for `.nan`/`.infinity`,
+    /// and passes through nonsensical negative/>100 values verbatim
+    /// otherwise — both are real possibilities for server-reported
+    /// telemetry (a glitch, not malice needed), and this runs on every
+    /// poll tick. Non-finite values become 0; everything else clamps into
+    /// the one range that's ever meaningful for a percentage.
+    private static func clampedPercent(_ value: Double) -> Int {
+        guard value.isFinite else { return 0 }
+        return Int(min(max(value, 0), 100).rounded())
     }
 }

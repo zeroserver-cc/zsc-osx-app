@@ -77,6 +77,26 @@ struct RemoteNodeRowView: View {
             }
         }
         .buttonStyle(.plain)
+        // H3 (correctness audit): disable only while an action for this
+        // row is already in flight - a second tap before the first
+        // mutation's response lands would otherwise fire a duplicate
+        // concurrent pause/resume (contrast with the bulk Force-Stop-All
+        // button in RemoteNodesSectionView, which already has this exact
+        // guard). Deliberately NOT also disabling for primaryAction == .none
+        // (a disconnected/inert node) — an earlier round this session found
+        // that a genuinely `.disabled` control stops participating in
+        // AppKit's native hover highlight, which made offline rows look
+        // "dead" next to normal hoverable ones; performPrimaryAction()
+        // already no-ops safely for `.none` regardless, so there's no
+        // correctness gap in leaving those rows hoverable-but-inert.
+        .disabled(actionState.isInFlight)
+        // Icon-only control: VoiceOver would otherwise read nothing but
+        // "button" for this entire row. accessibilityLabel carries identity
+        // (name + status), accessibilityHint carries what activating it
+        // does — letting VoiceOver append its own "double-tap to activate"
+        // convention rather than baking that phrasing in here.
+        .accessibilityLabel(Text("\(node.name), \(node.statusHintLabel)"))
+        .accessibilityHint(Text(accessibilityActionHint))
         // NOTE: .menuActionDismissBehavior(.disabled) — the modifier that
         // keeps a menu open across an item's action elsewhere in SwiftUI —
         // is explicitly @available(macOS, unavailable): Apple disabled this
@@ -123,6 +143,17 @@ struct RemoteNodeRowView: View {
         case .pause: onPause()
         case .resume: onResume()
         case .none: break
+        }
+    }
+
+    private var accessibilityActionHint: String {
+        switch node.primaryAction {
+        case .pause:
+            return NSLocalizedString("accessibility.remote_node.pause_hint", value: "Pause this node", comment: "")
+        case .resume:
+            return NSLocalizedString("accessibility.remote_node.resume_hint", value: "Resume this node", comment: "")
+        case .none:
+            return ""
         }
     }
 }

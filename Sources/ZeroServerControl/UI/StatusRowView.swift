@@ -9,8 +9,13 @@ struct StatusRowView: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            Circle()
-                .fill(dotColor)
+            // A color-only status dot is indistinguishable to colorblind
+            // users (running=green vs. mid-transition=orange are a common
+            // confusion pair). Each state now has its own glyph shape, so
+            // color is reinforcement, not the only signal.
+            Image(systemName: statusSymbolName)
+                .font(.system(size: 9))
+                .foregroundStyle(dotColor)
                 .frame(width: 8, height: 8)
                 .padding(.top, 4)
 
@@ -37,6 +42,19 @@ struct StatusRowView: View {
             return .orange
         case .unknown:
             return .red
+        }
+    }
+
+    private var statusSymbolName: String {
+        switch status {
+        case .running:
+            return "checkmark.circle.fill"
+        case .stopped, .notInstalled:
+            return "minus.circle.fill"
+        case .starting, .stopping:
+            return "arrow.triangle.2.circlepath.circle.fill"
+        case .unknown:
+            return "exclamationmark.circle.fill"
         }
     }
 

@@ -2,6 +2,15 @@ import Foundation
 
 @MainActor
 private func makeSignedInSession() async throws -> AccountSession {
+    // Clear any StoredSession a PRIOR sub-test's signIn() left behind
+    // before constructing a fresh AccountSession — its init() kicks off
+    // its own background restoreSessionAtLaunch() task, which would
+    // otherwise race the explicit signIn() call below against the same
+    // shared MockURLProtocol handler (restoreSessionAtLaunch expects a
+    // refreshToken-shaped response; the handler here is login-shaped),
+    // fail to decode, and call signOut() - possibly landing after
+    // signIn() succeeds and silently reverting this session to signed-out.
+    CredentialStore.clear()
     MockURLProtocol.requestHandler = { request in
         let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
         let body = #"{"data":{"login":{"user":{"id":"u1","email":"a@b.com"},"accessToken":"at","refreshToken":"rt","expiresAt":"2026-01-01T00:00:00.000Z"}}}"#
@@ -176,6 +185,93 @@ func runRemoteNodesControllerTests(_ t: TestRunner) async {
         await controller.refreshNow()
 
         t.expectEqual(controller.nodes.map(\.id), ["oldest", "middle", "newest"], "must be sorted oldest-created-first regardless of server order")
+    }
+
+    // H4 (correctness audit): sorted(by:) is stable, but that only
+    // preserves *that poll's* input order for two nodes sharing the exact
+    // same createdAt - without a real secondary tie-break, those two rows
+    // could still swap position every poll if the server's own tie order
+    // isn't identical across separate queries, reintroducing the exact
+    // "list reshuffles" symptom this sort exists to eliminate.
+    await t.run("refreshNow() breaks createdAt ties deterministically by id") {
+        let session = try await makeSignedInSession()
+        let controller = RemoteNodesController(apiClient: session.apiClient, session: session)
+
+        MockURLProtocol.requestHandler = { request in
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            let body = """
+            {"data":{"myMachines":[
+              {"id":"zebra","name":"zebra","status":"ONLINE","workloadsPaused":false,"lastHeartbeat":null,"agentVersion":null,"updatedAt":"2026-01-01T00:00:00.000Z","createdAt":"2026-01-01T00:00:00.000Z"},
+              {"id":"alpha","name":"alpha","status":"ONLINE","workloadsPaused":false,"lastHeartbeat":null,"agentVersion":null,"updatedAt":"2026-01-01T00:00:00.000Z","createdAt":"2026-01-01T00:00:00.000Z"}
+            ]}}
+            """
+            return (response, body.data(using: .utf8)!)
+        }
+        await controller.refreshNow()
+        let firstOrder = controller.nodes.map(\.id)
+
+        // Re-fetch with the exact same two same-createdAt nodes, but
+        // returned in the OPPOSITE order this time - simulating the
+        // server's own tie order not being guaranteed stable across calls.
+        MockURLProtocol.requestHandler = { request in
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            let body = """
+            {"data":{"myMachines":[
+              {"id":"alpha","name":"alpha","status":"ONLINE","workloadsPaused":false,"lastHeartbeat":null,"agentVersion":null,"updatedAt":"2026-01-01T00:00:00.000Z","createdAt":"2026-01-01T00:00:00.000Z"},
+              {"id":"zebra","name":"zebra","status":"ONLINE","workloadsPaused":false,"lastHeartbeat":null,"agentVersion":null,"updatedAt":"2026-01-01T00:00:00.000Z","createdAt":"2026-01-01T00:00:00.000Z"}
+            ]}}
+            """
+            return (response, body.data(using: .utf8)!)
+        }
+        await controller.refreshNow()
+        let secondOrder = controller.nodes.map(\.id)
+
+        t.expectEqual(firstOrder, ["alpha", "zebra"], "tied createdAt must break by id, not server order")
+        t.expectEqual(secondOrder, firstOrder, "order must stay identical across polls even when the server's own tie order flips")
+    }
+
+    // H5 (correctness audit): actionStates never got pruned, so a node
+    // deleted server-side while an action was in flight for it left a
+    // permanent entry in the dictionary for the rest of the app's session.
+    await t.run("refreshNow() prunes actionStates entries for nodes that no longer exist") {
+        let session = try await makeSignedInSession()
+        let controller = RemoteNodesController(apiClient: session.apiClient, session: session)
+
+        MockURLProtocol.requestHandler = { request in
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            let body = """
+            {"data":{"myMachines":[
+              {"id":"m1","name":"node-one","status":"ONLINE","workloadsPaused":false,"lastHeartbeat":null,"agentVersion":null,"updatedAt":"2026-01-01T00:00:00.000Z","createdAt":"2026-01-01T00:00:00.000Z"},
+              {"id":"m2","name":"node-two","status":"ONLINE","workloadsPaused":false,"lastHeartbeat":null,"agentVersion":null,"updatedAt":"2026-01-01T00:00:00.000Z","createdAt":"2026-01-02T00:00:00.000Z"}
+            ]}}
+            """
+            return (response, body.data(using: .utf8)!)
+        }
+        await controller.refreshNow()
+
+        // Give m1 a failed-action record, as if a mutation for it had
+        // been in flight when it got deleted server-side.
+        MockURLProtocol.requestHandler = { request in
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            let body = #"{"data":null,"errors":[{"message":"boom"}]}"#
+            return (response, body.data(using: .utf8)!)
+        }
+        await controller.pause(nodeId: "m1")
+        t.expect(controller.actionStates["m1"] != nil, "sanity check: the failed action recorded an actionStates entry")
+
+        // m1 is gone from the next refresh - deleted server-side.
+        MockURLProtocol.requestHandler = { request in
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            let body = """
+            {"data":{"myMachines":[
+              {"id":"m2","name":"node-two","status":"ONLINE","workloadsPaused":false,"lastHeartbeat":null,"agentVersion":null,"updatedAt":"2026-01-01T00:00:00.000Z","createdAt":"2026-01-02T00:00:00.000Z"}
+            ]}}
+            """
+            return (response, body.data(using: .utf8)!)
+        }
+        await controller.refreshNow()
+
+        t.expect(controller.actionStates["m1"] == nil, "actionStates for a node no longer in the account must be pruned, not kept forever")
     }
 
     await t.run("refreshNow() is a no-op (no network call, nodes cleared) while signed out") {

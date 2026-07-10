@@ -49,13 +49,17 @@ struct SettingsView: View {
             }
 
             sectionHeader("Connection")
-            Text(APIEnvironment.displayName).foregroundStyle(.secondary)
+            Text(APIEnvironment.displayName)
+                .foregroundStyle(APIEnvironment.isOverridden ? .orange : .secondary)
 
             Divider()
 
             sectionHeader("About")
             HStack {
-                Text(versionString).foregroundStyle(.secondary)
+                Text(versionString)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
                 Spacer()
                 Button("Open zeroserver.cc") {
                     if let url = URL(string: "https://zeroserver.cc") {
@@ -88,7 +92,13 @@ struct SettingsView: View {
         switch session.state {
         case .signedIn(let user):
             HStack {
+                // A real email address plus this window's fixed 420pt width
+                // (see the LOW/polish audit note) have nowhere to go for a
+                // long address — truncate the middle rather than letting it
+                // push Sign Out off-screen or wrap awkwardly.
                 Text(user.email)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
                 Spacer()
                 Button("Sign Out") { session.signOut() }
             }

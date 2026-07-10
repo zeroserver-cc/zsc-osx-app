@@ -15,6 +15,9 @@
 # Deliberately excludes Sources/ZeroServerControl/{UI,Controller,Login}/ and
 # the App entry point — those need SwiftUI/AppKit/MenuBarExtra and are
 # exercised by manual app testing (see CLAUDE.md), not by this script.
+# Exception: Controller/AgentTarget.swift has zero AppKit/SwiftUI
+# dependency (plain Foundation only) and its env-var validation is a real
+# security boundary (see AgentTargetTests.swift) worth a regression test.
 set -eu
 
 cd "$(dirname "$0")/.."
@@ -28,19 +31,26 @@ swiftc \
   Sources/ZeroServerControl/Account/GraphQLClient.swift \
   Sources/ZeroServerControl/Account/APIClient.swift \
   Sources/ZeroServerControl/Account/CredentialStore.swift \
+  Sources/ZeroServerControl/Account/PresentableError.swift \
   Sources/ZeroServerControl/Account/AccountSession.swift \
   Sources/ZeroServerControl/Remote/RemoteNodesController.swift \
   Sources/ZeroServerControl/Model/AccountModels.swift \
   Sources/ZeroServerControl/Model/RemoteNode.swift \
+  Sources/ZeroServerControl/Model/ForceStopWording.swift \
+  Sources/ZeroServerControl/Controller/AgentTarget.swift \
   Scripts/tests/TestSupport.swift \
   Scripts/tests/MockURLProtocol.swift \
   Scripts/tests/GraphQLClientTests.swift \
   Scripts/tests/APIClientTests.swift \
   Scripts/tests/CredentialStoreTests.swift \
   Scripts/tests/APIEnvironmentTests.swift \
+  Scripts/tests/AgentTargetTests.swift \
   Scripts/tests/ModelDecodingTests.swift \
   Scripts/tests/RemoteNodeActionLogicTests.swift \
   Scripts/tests/RemoteNodesControllerTests.swift \
+  Scripts/tests/AccountSessionTests.swift \
+  Scripts/tests/PresentableErrorTests.swift \
+  Scripts/tests/ForceStopWordingTests.swift \
   Scripts/tests/main.swift \
   -o "$SCRATCH/zsc-control-tests"
 

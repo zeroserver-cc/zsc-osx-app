@@ -121,4 +121,29 @@ func runRemoteNodeUsageSummaryTests(_ t: TestRunner) {
         let node = makeNode(status: .idle, workloadsPaused: true, currentUsage: fullUsage)
         t.expectEqual(node.usageSummary?.count, 3)
     }
+
+    // H2 (correctness audit): Int(someDouble.rounded()) traps (crashes,
+    // not throws) on .nan/.infinity, and passed negative/>100 values
+    // through verbatim - both are real possibilities for server-reported
+    // telemetry, and this runs on every poll tick. These lock in that
+    // non-finite values become 0 and everything else clamps into 0...100,
+    // instead of crashing the whole app or rendering "CPU -12%".
+    t.run("usageSummary does not crash and clamps to 0 for non-finite telemetry (.infinity/.nan)") {
+        let nonFiniteUsage = MachineUsage(cpuPercent: .infinity, memoryPercent: .nan, diskPercent: -.infinity, recordedAt: Date(timeIntervalSince1970: 0))
+        let node = makeNode(status: .online, workloadsPaused: false, currentUsage: nonFiniteUsage)
+        let metrics = node.usageSummary
+        t.expectEqual(metrics?.count, 3, "non-finite values must still produce entries, not crash or vanish")
+        t.expectEqual(metrics?[0].percent, 0, "cpuPercent: .infinity -> 0, not a trap")
+        t.expectEqual(metrics?[1].percent, 0, "memoryPercent: .nan -> 0, not a trap")
+        t.expectEqual(metrics?[2].percent, 0, "diskPercent: -.infinity -> 0, not a trap")
+    }
+
+    t.run("usageSummary clamps out-of-range telemetry into 0...100") {
+        let outOfRangeUsage = MachineUsage(cpuPercent: -12.0, memoryPercent: 137.5, diskPercent: 250.0, recordedAt: Date(timeIntervalSince1970: 0))
+        let node = makeNode(status: .online, workloadsPaused: false, currentUsage: outOfRangeUsage)
+        let metrics = node.usageSummary
+        t.expectEqual(metrics?[0].percent, 0, "cpuPercent: -12.0 clamps up to 0, not shown as negative")
+        t.expectEqual(metrics?[1].percent, 100, "memoryPercent: 137.5 clamps down to 100")
+        t.expectEqual(metrics?[2].percent, 100, "diskPercent: 250.0 clamps down to 100")
+    }
 }

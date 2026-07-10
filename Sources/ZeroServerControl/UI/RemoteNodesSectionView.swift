@@ -55,7 +55,11 @@ struct RemoteNodesSectionView: View {
             Text(error).font(.caption).foregroundStyle(.red)
             Button("Retry") { Task { await remoteNodes.refreshNow() } }
         } else if remoteNodes.nodes.isEmpty {
+            // Parity with the error state just above: "no nodes" is just as
+            // plausible a moment to want a manual re-check (e.g. right
+            // after provisioning one elsewhere) as an outright fetch error.
             Text("No nodes yet.").foregroundStyle(.secondary)
+            Button("Retry") { Task { await remoteNodes.refreshNow() } }
         } else {
             ForEach(remoteNodes.nodes) { node in
                 RemoteNodeRowView(
@@ -67,7 +71,10 @@ struct RemoteNodesSectionView: View {
             }
 
             Divider()
-            Button("Force Stop All Agents…", role: .destructive) {
+            // M5 (UI/HIG audit): label wording (singular/plural) comes from
+            // the same helper the confirmation alert uses, so this button
+            // and the alert it opens never disagree on a one-node account.
+            Button(ForceStopWording.menuButtonLabel(nodeCount: remoteNodes.nodes.count), role: .destructive) {
                 if ForceStopAllConfirmation.confirm(nodeCount: remoteNodes.nodes.count) {
                     Task { await remoteNodes.forceStopAll() }
                 }

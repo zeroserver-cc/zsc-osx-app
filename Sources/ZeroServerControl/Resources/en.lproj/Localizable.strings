@@ -8,6 +8,7 @@
 /* MenuContentView.swift */
 "Settings…" = "Settings…";
 "Quit ZeroServer Control" = "Quit ZeroServer Control";
+"menu.settings_hint.unknown" = "This Mac's agent needs attention.";
 
 /* SettingsView.swift */
 "Settings" = "Settings";
@@ -31,7 +32,6 @@
 "Loading…" = "Loading…";
 "Retry" = "Retry";
 "No nodes yet." = "No nodes yet.";
-"Force Stop All Agents…" = "Force Stop All Agents…";
 "Sign Out" = "Sign Out";
 
 /* LoginView.swift / ZeroServerControlApp.swift (shared Window title) */
@@ -56,15 +56,26 @@
 "force_stop.title.plural" = "Force Stop All %ld Nodes?";
 "force_stop.informative" = "This immediately exits the agent process on every node in your account. Unlike Pause, this cannot be undone remotely for any of them — each one can only come back via local/physical access, or its own next reboot.";
 "Cancel" = "Cancel";
-"Force Stop All" = "Force Stop All";
+"force_stop.button.singular" = "Force Stop This Agent…";
+"force_stop.button.plural" = "Force Stop All %ld Agents…";
+"force_stop.confirm_button.singular" = "Force Stop";
+"force_stop.confirm_button.plural" = "Force Stop All";
 
-/* AccountSession.swift */
-"Your session expired. Please sign in again." = "Your session expired. Please sign in again.";
+/* PresentableError.swift — used by AccountSession.swift, RemoteNodesController.swift */
+"error.session_expired" = "Your session expired. Please sign in again.";
+"error.generic_request_failed" = "Something went wrong. Please try again.";
+"error.network" = "Couldn't reach the server. Check your internet connection and try again.";
+"error.malformed_response" = "Something went wrong talking to the server. Please try again.";
+"error.server_trouble" = "The server is having trouble right now. Please try again in a moment.";
 
 /* RemoteNode.swift — usageSummary's per-metric labels */
 "usage.cpu" = "CPU";
 "usage.ram" = "RAM";
 "usage.disk" = "DISK";
+
+/* RemoteNodeRowView.swift — accessibility */
+"accessibility.remote_node.pause_hint" = "Pause this node";
+"accessibility.remote_node.resume_hint" = "Resume this node";
 
 /* AgentStatus.swift — shortLabel */
 "agent.not_installed" = "Not Installed";

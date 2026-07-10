@@ -21,6 +21,21 @@ struct APIEnvironment {
         return productionBaseURL
     }
 
+    /// M1 (security audit): this override silently redirects *all* traffic,
+    /// including the plaintext password typed into LoginView — a stealthy
+    /// credential-exfiltration path if it's ever set by anything other than
+    /// the developer who intentionally set it (e.g. the same unprivileged
+    /// `launchctl setenv` technique AgentTarget.swift's ZSC_CONTROL_DEV_LABEL
+    /// is vulnerable to). Removing the override isn't the fix — it's a
+    /// legitimate, documented local-dev escape hatch — so instead this flag
+    /// drives a persistent, hard-to-miss menu bar badge (see
+    /// ZeroServerControlApp.swift) rather than leaving Settings' Connection
+    /// row as the only, easy-to-miss indicator that traffic isn't going to
+    /// production.
+    static var isOverridden: Bool {
+        baseURL != productionBaseURL
+    }
+
     /// zsc-backend serves GraphQL at this fixed path off the base URL in
     /// every environment — only scheme/host/port ever change, so that's all
     /// the override needs to control.
