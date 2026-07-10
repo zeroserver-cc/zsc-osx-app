@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
 
@@ -45,3 +46,50 @@ jobs:
 
       - name: Localizable.strings key parity (en <-> pt-BR)
         run: Scripts/check-localization-parity.sh
+
+      # P1 (build-artifact plan): `swift build` above only proves the debug
+      # build compiles — it says nothing about the actual shippable .app
+      # (Info.plist substitution, icon assembly, ad-hoc signing), which is a
+      # distinct step this project's own zsc-control -> zsc-osx-app rename
+      # incident showed can silently diverge from a plain build. This
+      # exercises that real packaging path on every push/PR too, and the
+      # uploaded artifact gives a reviewer a build to click through without
+      # a local checkout.
+      - name: Determine app version
+        id: version
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=0.1.0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build app bundle
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: Scripts/build-app-bundle.sh
+
+      - name: Upload app bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zeroserver-control-app-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+
+      # Only meaningful on a tag push (see the `tags: ['v*']` trigger
+      # above) — re-reads the actual built Info.plist rather than assuming
+      # the sed substitution in build-app-bundle.sh succeeded, so "About"
+      # can never silently drift from what a release tag says it is.
+      - name: Verify tag matches built version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          set -euo pipefail
+          BUILT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "dist/ZeroServer Control.app/Contents/Info.plist")"
+          EXPECTED="${{ steps.version.outputs.version }}"
+          if [ "$BUILT_VERSION" != "$EXPECTED" ]; then
+            echo "ERROR: built CFBundleShortVersionString ($BUILT_VERSION) does not match the tag-derived version ($EXPECTED)." >&2
+            exit 1
+          fi
+          echo "Tag/version consistency OK ($BUILT_VERSION)."
