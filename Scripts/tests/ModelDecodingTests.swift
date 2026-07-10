@@ -1,10 +1,11 @@
 import Foundation
 
-private let decoder: JSONDecoder = {
-    let d = JSONDecoder()
-    d.dateDecodingStrategy = .iso8601
-    return d
-}()
+// Reuses GraphQLClient's exact decoder construction rather than building a
+// separate one here — a prior version of this file built its own naive
+// `.iso8601`-strategy decoder, which drifted from GraphQLClient's real
+// decoder and masked a genuine cross-Foundation-version decode bug (see
+// GraphQLClient.swift's makeDecoder() doc comment for the full story).
+private let decoder = GraphQLClient.makeDecoder()
 
 func runModelDecodingTests(_ t: TestRunner) {
     t.run("RemoteNode decodes the exact JSON shape the real backend returns") {
@@ -18,11 +19,11 @@ func runModelDecodingTests(_ t: TestRunner) {
         t.expectEqual(node.status, .idle)
         t.expectEqual(node.workloadsPaused, false)
         t.expect(node.agentVersion == "0.1.11")
-        // Regression guard: JSONDecoder's default .iso8601 strategy must
-        // handle the fractional-second timestamps the real backend sends
-        // ("...20.985Z") — this was manually verified once this session but
-        // had no regression test protecting it against a future Foundation
-        // change or a copy-paste "fix" that swaps in a stricter formatter.
+        // Regression guard: GraphQLClient.makeDecoder()'s custom strategy
+        // must handle the fractional-second timestamps the real backend
+        // sends ("...20.985Z") on every Foundation version, not just
+        // whichever one happens to run this locally — see its doc comment
+        // for the real cross-version decode failure this replaced.
         t.expect(node.lastHeartbeat != nil, "fractional-second ISO8601 timestamp must decode, not be silently dropped")
     }
 

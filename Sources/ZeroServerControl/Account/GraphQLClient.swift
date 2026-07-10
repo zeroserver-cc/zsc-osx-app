@@ -39,11 +39,57 @@ final class GraphQLClient {
 
     private let endpoint: URL
     private let urlSession: URLSession
-    private let decoder: JSONDecoder = {
+    private let decoder = GraphQLClient.makeDecoder()
+
+    /// Exposed (not just built inline into `decoder`) so anything decoding
+    /// this app's GraphQL response shapes outside of `execute` — today,
+    /// only `ModelDecodingTests.swift`'s fixture-based regression tests —
+    /// uses this exact same date-decoding behavior instead of independently
+    /// reimplementing an `.iso8601` `JSONDecoder`. That duplication is
+    /// exactly what let this decoder's real bug (below) go unnoticed:
+    /// the test file had its own separate, naive `.iso8601` decoder that
+    /// happened to still work, so it never exercised the fix.
+    static func makeDecoder() -> JSONDecoder {
         let d = JSONDecoder()
-        d.dateDecodingStrategy = .iso8601
+        d.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let dateString = try container.decode(String.self)
+            // zsc-backend (Node's `Date.toISOString()`) always emits
+            // millisecond fractional seconds ("...20.985Z"). JSONDecoder's
+            // built-in `.iso8601` strategy relies on ISO8601DateFormatter's
+            // *default* formatOptions, and whether those defaults tolerate
+            // fractional seconds has changed across Foundation
+            // implementations (confirmed the hard way: this decoded fine
+            // locally on a newer Swift/Foundation but failed outright with
+            // "Expected date string to be ISO8601-formatted." the first
+            // time this ran in CI, on an older one) — every authenticated
+            // response has a date field, so that difference alone was a
+            // total, silent decode failure for every GraphQL call on
+            // whichever end users happen to run an OS/Foundation on the
+            // stricter side of that line. Explicit formatOptions (tried
+            // with, then without, fractional seconds) are deterministic
+            // regardless of which Foundation the OS ships.
+            if let date = iso8601WithFractionalSeconds.date(from: dateString) {
+                return date
+            }
+            if let date = iso8601.date(from: dateString) {
+                return date
+            }
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Expected date string to be ISO8601-formatted: \(dateString)"
+            )
+        }
         return d
+    }
+
+    private static let iso8601WithFractionalSeconds: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
     }()
+
+    private static let iso8601 = ISO8601DateFormatter()
 
     init(endpoint: URL = APIEnvironment.graphQLEndpoint, urlSession: URLSession = .shared) {
         self.endpoint = endpoint
