@@ -71,6 +71,7 @@ Never confuse `cc.zeroserver.control-devtest` with the real agent's label (`cc.z
 
 ```
 zsc-osx-app/
+├── .github/workflows/ci.yml         # build + tests + secrets/localization guards on every push/PR
 ├── Package.swift                    # SPM manifest (macOS 13+, one executable target)
 ├── Packaging/
 │   └── Info.plist                   # template (__VERSION__/__BUILD__ filled in at build time)
@@ -82,6 +83,7 @@ zsc-osx-app/
 │   ├── build-app-bundle.sh          # assembles dist/"ZeroServer Control.app"
 │   ├── generate-icons.sh            # regenerates every derived icon asset
 │   ├── run-tests.sh                 # compiles & runs the test suite
+│   ├── check-localization-parity.sh # fails if en/pt-BR Localizable.strings keys drift
 │   ├── devtest-daemon*              # throwaway LaunchDaemon fixture (see above)
 │   └── tests/                       # hand-rolled test drivers run-tests.sh compiles
 ├── Sources/ZeroServerControl/
@@ -111,6 +113,7 @@ This deliberately excludes `Sources/ZeroServerControl/{UI,Controller,Login}/` an
 3. Run `Scripts/run-tests.sh` before opening a PR — it must pass.
 4. UI-layer changes (`Sources/ZeroServerControl/{UI,Controller,Login}/`) have no automated coverage, so describe what you tested manually in the PR (a screenshot or short clip helps a lot for anything visual).
 5. Open a PR against `main` with a clear description of the *why*, not just the *what* — the diff already shows what changed.
+6. CI (`.github/workflows/ci.yml`) runs `swift build`, `Scripts/run-tests.sh`, and two guards — a secrets/`CLAUDE.md` check and an en/pt-BR `Localizable.strings` key-parity check — on every push and PR against `main`. All of it must be green before merging.
 
 ### Security
 
@@ -187,6 +190,7 @@ Nunca confunda `cc.zeroserver.control-devtest` com o label do agente real (`cc.z
 
 ```
 zsc-osx-app/
+├── .github/workflows/ci.yml         # build + testes + verificações de segredos/localização em todo push/PR
 ├── Package.swift                    # manifesto do SPM (macOS 13+, um executable target)
 ├── Packaging/
 │   └── Info.plist                   # template (__VERSION__/__BUILD__ preenchidos no build)
@@ -198,6 +202,7 @@ zsc-osx-app/
 │   ├── build-app-bundle.sh          # monta o dist/"ZeroServer Control.app"
 │   ├── generate-icons.sh            # regenera todos os ícones derivados
 │   ├── run-tests.sh                 # compila e executa a suíte de testes
+│   ├── check-localization-parity.sh # falha se as chaves do en/pt-BR Localizable.strings divergirem
 │   ├── devtest-daemon*              # fixture de LaunchDaemon descartável (veja acima)
 │   └── tests/                       # drivers de teste que o run-tests.sh compila
 ├── Sources/ZeroServerControl/
@@ -227,6 +232,7 @@ Isso exclui propositalmente `Sources/ZeroServerControl/{UI,Controller,Login}/` e
 3. Execute `Scripts/run-tests.sh` antes de abrir um PR — ele precisa passar.
 4. Mudanças na camada de UI (`Sources/ZeroServerControl/{UI,Controller,Login}/`) não têm cobertura automatizada, então descreva no PR o que você testou manualmente (uma captura de tela ou um vídeo curto ajuda bastante em qualquer coisa visual).
 5. Abra um PR contra a `main` com uma descrição clara do *porquê*, não só do *o quê* — o diff já mostra o que mudou.
+6. O CI (`.github/workflows/ci.yml`) executa `swift build`, `Scripts/run-tests.sh`, e duas verificações de segurança — checagem de segredos/`CLAUDE.md` e paridade de chaves entre `Localizable.strings` en/pt-BR — em todo push e PR contra a `main`. Tudo precisa estar verde antes de fazer merge.
 
 ### Segurança
 

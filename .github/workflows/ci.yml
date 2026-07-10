@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    name: Build, Test & Guards
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Secrets / CLAUDE.md guard
+        run: |
+          set -euo pipefail
+          # CLAUDE.md is internal-only working notes for Claude Code — it
+          # must only ever exist locally via .gitignore, never tracked in
+          # this public repo.
+          if git ls-files | grep -qx "CLAUDE.md"; then
+            echo "ERROR: CLAUDE.md must never be tracked in this repo." >&2
+            exit 1
+          fi
+          # Backstop, not a full secret scanner: catches the common
+          # "identifier = long token-shaped literal" assignment shape
+          # anywhere in tracked source. Deliberately narrow (assignment,
+          # not just word proximity) to stay low-false-positive.
+          PATTERN='(token|secret|api[_-]?key|password)[[:space:]]*[:=][[:space:]]*"[A-Za-z0-9_-]{20,}"'
+          if git grep -nIE "$PATTERN" -- . > /tmp/secret-guard-matches.txt; then
+            echo "ERROR: possible hardcoded secret found:" >&2
+            cat /tmp/secret-guard-matches.txt >&2
+            exit 1
+          fi
+          echo "Secrets/CLAUDE.md guard passed."
+
+      - name: swift build
+        run: swift build
+
+      - name: Unit tests
+        run: Scripts/run-tests.sh
+
+      - name: Localizable.strings key parity (en <-> pt-BR)
+        run: Scripts/check-localization-parity.sh
