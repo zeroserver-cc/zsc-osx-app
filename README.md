@@ -19,6 +19,10 @@ ZeroServer Control lives in your Mac's menu bar and gives you two things, withou
 
 Running a ZeroServer Community Cloud provider node today means either watching a terminal window or checking a web dashboard to know whether your machine — or any other node on your account — is healthy, busy, or needs attention. ZeroServer Control puts that one click away, using the same account-wide GraphQL API a web dashboard would, but as a lightweight, always-available system-tray-style utility instead of a browser tab you have to remember to keep open.
 
+### Download
+
+If you just want to run the app — not build or modify it — grab the latest build from **[GitHub Releases](https://github.com/zeroserver-cc/zsc-osx-app/releases/latest)**, unzip it, and drag `ZeroServer Control.app` to `/Applications`. It's currently ad-hoc signed rather than notarized (see Security below), so the first launch needs a right-click → Open instead of a plain double-click — macOS will otherwise refuse to open it as "unidentified developer." Everything past this point is for building it yourself instead.
+
 ### Requirements
 
 - macOS 13 (Ventura) or later — that's the minimum for SwiftUI's `MenuBarExtra`, which this whole app is built on.
@@ -137,6 +141,10 @@ O ZeroServer Control vive na barra de menus do seu Mac e oferece duas coisas, se
 ### Por que ele existe
 
 Hoje, operar um node provedor no ZeroServer Community Cloud significa ficar de olho em uma janela de terminal ou verificar um dashboard web para saber se sua máquina — ou qualquer outro node da sua conta — está saudável, ocupada, ou precisando de atenção. O ZeroServer Control coloca isso a um clique de distância, usando a mesma API GraphQL, disponível para toda a conta, que um dashboard web usaria — mas como um utilitário leve e sempre disponível na barra de menus, em vez de uma aba do navegador que você precisa lembrar de manter aberta.
+
+### Download
+
+Se você só quer usar o app — não compilar ou modificar — baixe a versão mais recente nas **[GitHub Releases](https://github.com/zeroserver-cc/zsc-osx-app/releases/latest)**, descompacte e arraste o `ZeroServer Control.app` para `/Applications`. Ele é assinado ad-hoc, não notarizado (veja Segurança abaixo), então o primeiro lançamento precisa de um clique com o botão direito → Abrir em vez de um duplo clique normal — caso contrário o macOS vai recusar abrir, dizendo que é de um "desenvolvedor não identificado". Todo o restante desta seção é para quem quer compilar o app.
 
 ### Requisitos
 
