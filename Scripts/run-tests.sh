@@ -34,8 +34,10 @@ swiftc \
   Sources/ZeroServerControl/Account/PresentableError.swift \
   Sources/ZeroServerControl/Account/AccountSession.swift \
   Sources/ZeroServerControl/Remote/RemoteNodesController.swift \
+  Sources/ZeroServerControl/Remote/DashboardController.swift \
   Sources/ZeroServerControl/Model/AccountModels.swift \
   Sources/ZeroServerControl/Model/RemoteNode.swift \
+  Sources/ZeroServerControl/Model/MachineStatusEvent.swift \
   Sources/ZeroServerControl/Model/ForceStopWording.swift \
   Sources/ZeroServerControl/Controller/AgentTarget.swift \
   Scripts/tests/TestSupport.swift \
@@ -48,6 +50,7 @@ swiftc \
   Scripts/tests/ModelDecodingTests.swift \
   Scripts/tests/RemoteNodeActionLogicTests.swift \
   Scripts/tests/RemoteNodesControllerTests.swift \
+  Scripts/tests/DashboardControllerTests.swift \
   Scripts/tests/AccountSessionTests.swift \
   Scripts/tests/PresentableErrorTests.swift \
   Scripts/tests/ForceStopWordingTests.swift \

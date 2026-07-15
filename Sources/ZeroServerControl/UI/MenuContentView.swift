@@ -8,17 +8,32 @@ import AppKit
 /// keeps the UI feeling like a normal, "light and objective" system menu
 /// (think Wi-Fi/Bluetooth) instead of a custom floating panel.
 ///
-/// Deliberately just nodes + exit points now — everything that isn't a
-/// node decision (account, preferences, about, this Mac's own agent) lives
-/// in the Settings window (see SettingsView.swift) instead, opened via
-/// openWindow(id:) the same way LoginView already is.
+/// Deliberately just the Dashboard entry point, nodes, and exit points —
+/// everything that isn't a node decision (account, preferences, about, this
+/// Mac's own agent) lives in the Settings window (see SettingsView.swift)
+/// instead, opened via openWindow(id:) the same way LoginView already is.
 struct MenuContentView: View {
     @ObservedObject var session: AccountSession
     @ObservedObject var remoteNodes: RemoteNodesController
     @ObservedObject var agent: AgentController
+    @ObservedObject var dashboard: DashboardController
     @Environment(\.openWindow) private var openWindow
 
+    /// Set when "Dashboard" is tapped while signed out, instead of opening
+    /// the Dashboard directly: it forces the sign-in window open first, and
+    /// this flag is what tells `onChange(of: session.state)` below to open
+    /// the Dashboard automatically the moment sign-in actually succeeds,
+    /// rather than requiring a second click on this same button. Lives here
+    /// (not on AccountSession) so the auth model itself stays free of any
+    /// UI-navigation intent — same separation of concerns already drawn
+    /// between APIClient (networking) and AccountSession (auth state).
+    @State private var pendingDashboardOpen = false
+
     var body: some View {
+        dashboardMenuItem
+
+        Divider()
+
         RemoteNodesSectionView(session: session, remoteNodes: remoteNodes)
 
         Divider()
@@ -31,6 +46,34 @@ struct MenuContentView: View {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q")
+        // Mirrors the exact idiom RemoteNodesSectionView already uses to
+        // react to a sign-in transition (its own onChange there refreshes
+        // the node list) — here, a sign-in that happened because the user
+        // clicked "Dashboard" while signed out finishes by opening the
+        // Dashboard, with no second click required.
+        .onChange(of: session.state) { newState in
+            guard pendingDashboardOpen, case .signedIn = newState else { return }
+            pendingDashboardOpen = false
+            NSApp.activate(ignoringOtherApps: true)
+            openWindow(id: DashboardWindow.id)
+        }
+    }
+
+    /// Top of the dropdown, ahead of the node list and Settings — the
+    /// single entry point into the app's main resource view. Everything
+    /// this button leads to (the node list already visible one section
+    /// down, and the Dashboard itself) requires being signed in; this is
+    /// the forced-login gate for that.
+    private var dashboardMenuItem: some View {
+        Button("Dashboard") {
+            NSApp.activate(ignoringOtherApps: true)
+            if case .signedIn = session.state {
+                openWindow(id: DashboardWindow.id)
+            } else {
+                pendingDashboardOpen = true
+                openWindow(id: AccountLoginWindow.id)
+            }
+        }
     }
 
     /// A quiet nudge, not an alarm: this Mac's own agent needing attention

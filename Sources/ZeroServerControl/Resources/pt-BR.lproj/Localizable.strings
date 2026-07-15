@@ -2,9 +2,23 @@
    before treating this as final; it hasn't had a native-speaker pass yet. */
 
 /* MenuContentView.swift */
+"Dashboard" = "Painel";
 "Settings…" = "Configurações…";
 "Quit ZeroServer Control" = "Sair do ZeroServer Control";
 "menu.settings_hint.unknown" = "O agente deste Mac precisa de atenção.";
+
+/* DashboardView.swift */
+"Sign in to view your Dashboard." = "Entre para ver seu Painel.";
+"Select a node." = "Selecione um nó.";
+"Last 24 Hours" = "Últimas 24 Horas";
+"Recent Activity" = "Atividade Recente";
+"No recent status changes." = "Nenhuma mudança de status recente.";
+
+/* NodeUsageChartView.swift */
+"No data yet." = "Ainda sem dados.";
+
+/* MachineStatusEvent.swift — transitionLabel (%@ %@ = previousStatus.label, newStatus.label) */
+"dashboard.status_transition_format" = "%@ → %@";
 
 /* SettingsView.swift */
 "Settings" = "Configurações";

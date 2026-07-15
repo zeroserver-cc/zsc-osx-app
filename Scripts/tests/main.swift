@@ -13,6 +13,7 @@ func runAllTests() async {
     await runGraphQLClientTests(t)
     await runAPIClientTests(t)
     await runRemoteNodesControllerTests(t)
+    await runDashboardControllerTests(t)
     await runAccountSessionTests(t)
     runPresentableErrorTests(t)
     runForceStopWordingTests(t)

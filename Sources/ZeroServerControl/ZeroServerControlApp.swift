@@ -14,23 +14,25 @@ struct ZeroServerControlApp: App {
     @StateObject private var loginItems = LoginItemManager()
     @StateObject private var accountSession: AccountSession
     @StateObject private var remoteNodes: RemoteNodesController
+    @StateObject private var dashboard: DashboardController
 
     init() {
-        // AccountSession and RemoteNodesController must share the exact
-        // same APIClient instance (so a token refresh triggered by one
-        // request is immediately visible to the other) — that's only
-        // expressible by constructing AccountSession first, then handing
-        // its apiClient into RemoteNodesController, both wrapped via the
-        // explicit StateObject(wrappedValue:) form rather than the usual
-        // `= AccountSession()` property-default syntax.
+        // AccountSession, RemoteNodesController, and DashboardController
+        // must all share the exact same APIClient instance (so a token
+        // refresh triggered by any one of them is immediately visible to
+        // the others) — that's only expressible by constructing
+        // AccountSession first, then handing its apiClient into the other
+        // two, all wrapped via the explicit StateObject(wrappedValue:) form
+        // rather than the usual `= AccountSession()` property-default syntax.
         let session = AccountSession()
         _accountSession = StateObject(wrappedValue: session)
         _remoteNodes = StateObject(wrappedValue: RemoteNodesController(apiClient: session.apiClient, session: session))
+        _dashboard = StateObject(wrappedValue: DashboardController(apiClient: session.apiClient, session: session))
     }
 
     var body: some Scene {
         MenuBarExtra {
-            MenuContentView(session: accountSession, remoteNodes: remoteNodes, agent: agent)
+            MenuContentView(session: accountSession, remoteNodes: remoteNodes, agent: agent, dashboard: dashboard)
         } label: {
             // M1 (security audit): ZSC_CONTROL_API_BASE_URL redirects every
             // request — including the login password — away from
@@ -78,5 +80,16 @@ struct ZeroServerControlApp: App {
             SettingsView(agent: agent, loginItems: loginItems, session: accountSession)
         }
         .windowResizability(.contentSize)
+
+        // The app's main resource view — opened via the "Dashboard" button
+        // at the top of MenuContentView's dropdown, which forces sign-in
+        // first (see MenuContentView's pendingDashboardOpen flow) before
+        // ever reaching this window. Unlike Login/Settings, deliberately
+        // NOT .windowResizability(.contentSize) — this view's charts and
+        // node list genuinely benefit from being resized larger, unlike
+        // those two fixed-size forms.
+        Window("Dashboard", id: DashboardWindow.id) {
+            DashboardView(session: accountSession, remoteNodes: remoteNodes, dashboard: dashboard)
+        }
     }
 }

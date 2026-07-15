@@ -109,6 +109,50 @@ func runAPIClientTests(_ t: TestRunner) async {
         t.expectEqual(tokenSource.refreshCallCount, 0)
     }
 
+    await t.run("APIClient.machineTelemetry decodes a series of MachineUsage points") {
+        MockURLProtocol.requestHandler = { request in
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            let body = """
+            {"data":{"machineTelemetry":[
+              {"cpuPercent":10.0,"memoryPercent":20.0,"diskPercent":30.0,"recordedAt":"2026-01-01T00:00:00.000Z"},
+              {"cpuPercent":15.0,"memoryPercent":25.0,"diskPercent":null,"recordedAt":"2026-01-01T00:05:00.000Z"}
+            ]}}
+            """
+            return (response, body.data(using: .utf8)!)
+        }
+        let graphQL = GraphQLClient(endpoint: endpoint, urlSession: MockURLProtocol.makeSession())
+        let apiClient = APIClient(graphQL: graphQL)
+        let tokenSource = FakeTokenSource()
+        tokenSource.accessToken = "valid-token"
+        apiClient.tokenSource = tokenSource
+
+        let points = try await apiClient.machineTelemetry(machineId: "m1", sinceHours: 24)
+        t.expectEqual(points.count, 2)
+        t.expect(points[0].diskPercent == 30.0)
+        t.expect(points[1].diskPercent == nil, "diskPercent must decode as nil, not fail the whole point")
+    }
+
+    await t.run("APIClient.machineStatusEvents decodes a list of status transitions") {
+        MockURLProtocol.requestHandler = { request in
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            let body = """
+            {"data":{"machineStatusEvents":[
+              {"id":"ev1","machineId":"m1","previousStatus":"IDLE","newStatus":"OVERLOADED","source":"AGENT_HEARTBEAT","reason":null,"createdAt":"2026-01-01T00:00:00.000Z"}
+            ]}}
+            """
+            return (response, body.data(using: .utf8)!)
+        }
+        let graphQL = GraphQLClient(endpoint: endpoint, urlSession: MockURLProtocol.makeSession())
+        let apiClient = APIClient(graphQL: graphQL)
+        let tokenSource = FakeTokenSource()
+        tokenSource.accessToken = "valid-token"
+        apiClient.tokenSource = tokenSource
+
+        let events = try await apiClient.machineStatusEvents(machineId: "m1", sinceHours: 24, limit: 100)
+        t.expectEqual(events.count, 1)
+        t.expectEqual(events[0].newStatus, .overloaded)
+    }
+
     await t.run("APIClient.login and .refreshToken never go through the authenticated retry wrapper") {
         // Regression guard: login/refreshToken must work with NO tokenSource
         // set at all (there's no token yet to refresh), unlike every other

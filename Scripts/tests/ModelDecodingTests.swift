@@ -97,6 +97,26 @@ func runModelDecodingTests(_ t: TestRunner) {
         t.expectEqual(payload.refreshToken, "tok_refresh")
     }
 
+    t.run("MachineStatusEvent decodes the real machineStatusEvents response shape") {
+        let json = """
+        {"id":"ev1","machineId":"m1","previousStatus":"IDLE","newStatus":"OVERLOADED","source":"AGENT_HEARTBEAT","reason":null,"createdAt":"2026-07-09T21:05:20.985Z"}
+        """
+        let event = try decoder.decode(MachineStatusEvent.self, from: Data(json.utf8))
+        t.expectEqual(event.previousStatus, .idle)
+        t.expectEqual(event.newStatus, .overloaded)
+        t.expectEqual(event.source, "AGENT_HEARTBEAT")
+        t.expect(event.reason == nil)
+    }
+
+    t.run("MachineStatusEvent tolerates an unrecognized source/reason without failing to decode") {
+        let json = """
+        {"id":"ev2","machineId":"m1","previousStatus":"ONLINE","newStatus":"OFFLINE","source":"SOME_FUTURE_SOURCE","reason":"manual override","createdAt":"2026-07-09T21:05:20.985Z"}
+        """
+        let event = try decoder.decode(MachineStatusEvent.self, from: Data(json.utf8))
+        t.expectEqual(event.source, "SOME_FUTURE_SOURCE")
+        t.expectEqual(event.reason, "manual override")
+    }
+
     t.run("AuthPayload decodes fine even when the server sends an extra legacy `token` field") {
         // Decodable silently ignores unrecognized keys by default — this
         // locks in that AuthPayload deliberately does NOT declare a `token`
