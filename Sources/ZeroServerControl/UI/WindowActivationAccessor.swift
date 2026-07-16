@@ -38,9 +38,14 @@ private struct WindowActivationAccessor: NSViewRepresentable {
         /// while this window is still open (e.g. to copy a password from a
         /// password manager) would get their focus stolen back on the next
         /// unrelated state change, which is a worse bug than the one this
-        /// fixes. Runs exactly once, the first time the underlying NSView
-        /// is actually attached to a window.
-        var didConfigure = false
+        /// fixes. Tracks the identity of the last NSWindow configured
+        /// (rather than a plain "did this ever run" flag) so that IF
+        /// SwiftUI ever hands this a genuinely different NSWindow instance
+        /// for the same Window(id:) scene — e.g. across a close-then-
+        /// reopen cycle — this still reconfigures for it; a window's own
+        /// identity never changes just because the user is typing, so this
+        /// stays a true one-shot for the common case.
+        var configuredWindow: ObjectIdentifier?
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -62,10 +67,11 @@ private struct WindowActivationAccessor: NSViewRepresentable {
     /// every subsequent SwiftUI render pass regardless, so this reliably
     /// catches the moment `.window` becomes non-nil.
     private func scheduleConfiguration(for view: NSView, coordinator: Coordinator) {
-        guard !coordinator.didConfigure else { return }
         DispatchQueue.main.async {
-            guard let window = view.window, !coordinator.didConfigure else { return }
-            coordinator.didConfigure = true
+            guard let window = view.window else { return }
+            let identity = ObjectIdentifier(window)
+            guard coordinator.configuredWindow != identity else { return }
+            coordinator.configuredWindow = identity
             window.collectionBehavior.insert(.moveToActiveSpace)
             window.collectionBehavior.insert(.fullScreenAuxiliary)
             window.makeKeyAndOrderFront(nil)

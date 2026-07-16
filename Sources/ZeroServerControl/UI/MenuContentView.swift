@@ -57,6 +57,17 @@ struct MenuContentView: View {
             NSApp.activate(ignoringOtherApps: true)
             openWindow(id: DashboardWindow.id)
         }
+        // A session that silently expires (background refresh failure —
+        // see AccountSession.expiredInBackground) leaves whatever window
+        // was open (Dashboard, node list) showing a passive "please sign
+        // in" placeholder the user has to notice and click through. This
+        // reopens Login proactively instead, the moment that happens —
+        // same activation call every other openWindow(id:) site here uses.
+        .onChange(of: session.expiredInBackground) { expired in
+            guard expired else { return }
+            NSApp.activate(ignoringOtherApps: true)
+            openWindow(id: AccountLoginWindow.id)
+        }
     }
 
     /// Top of the dropdown, ahead of the node list and Settings — the

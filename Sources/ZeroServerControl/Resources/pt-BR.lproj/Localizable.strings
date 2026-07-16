@@ -34,6 +34,7 @@
 "connection.production" = "Produção";
 "connection.local" = "Local";
 "about.version_format" = "Versão %@ (%@)";
+"about.dev_build" = "Build de Desenvolvimento (sem empacotar)";
 
 /* RemoteNodesSectionView.swift */
 "Signing in…" = "Entrando…";

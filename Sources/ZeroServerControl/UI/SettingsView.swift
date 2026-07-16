@@ -143,10 +143,21 @@ struct SettingsView: View {
     /// e.g. "Version 1.0.0 (1)" — same Info.plist keys AppKit's own About
     /// panel already reads (CFBundleShortVersionString/CFBundleVersion),
     /// just surfaced inline here too for convenience.
+    ///
+    /// `swift run`'s unbundled executable has no Info.plist at all (see
+    /// CLAUDE.md) — silently falling back to "Version — (—)" in that case
+    /// read as a bug (a version that failed to load) rather than the
+    /// expected dev-mode reality, so this names it explicitly instead.
     private var versionString: String {
         let info = Bundle.main.infoDictionary
-        let shortVersion = info?["CFBundleShortVersionString"] as? String ?? "—"
-        let build = info?["CFBundleVersion"] as? String ?? "—"
+        guard let shortVersion = info?["CFBundleShortVersionString"] as? String,
+              let build = info?["CFBundleVersion"] as? String else {
+            return NSLocalizedString(
+                "about.dev_build",
+                value: "Development Build (unbundled)",
+                comment: "Shown instead of a version number when running via `swift run`, which has no Info.plist"
+            )
+        }
         let format = NSLocalizedString("about.version_format", value: "Version %@ (%@)", comment: "e.g. Version 1.0.0 (1)")
         return String(format: format, shortVersion, build)
     }
