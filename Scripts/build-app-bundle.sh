@@ -9,6 +9,22 @@
 # Usage:
 #   Scripts/build-app-bundle.sh                # builds version 0.1.0 / build 1
 #   VERSION=1.2.0 BUILD=7 Scripts/build-app-bundle.sh
+#   CONFIGURATION=debug Scripts/build-app-bundle.sh
+#
+# CONFIGURATION=debug builds ".build/debug" (fast, incremental — same as
+# `swift run`) instead of "-c release", into a separate "ZeroServer Control
+# (Debug).app" so it can never be confused with or overwrite a real release
+# build. This exists because window activation/foreground/key-window
+# behavior is genuinely unreliable when run unbundled via `swift run` — an
+# SPM executable started from a terminal has no CFBundleIdentifier and never
+# goes through LaunchServices the way a real .app does, and macOS treats
+# that as a lower-trust process for focus-stealing purposes (a deliberate
+# OS security/UX behavior, not a bug in this app — confirmed by testing:
+# the exact same window-focus code that misbehaves under `swift run` works
+# correctly once packaged, even as an ad-hoc-signed debug build). Anything
+# that involves opening Login/Settings/Dashboard and expecting normal
+# window/keyboard-focus behavior should be tested via this debug bundle,
+# not `swift run`.
 set -eu
 
 cd "$(dirname "$0")/.."
@@ -17,19 +33,36 @@ cd "$(dirname "$0")/.."
 # for the first stable, feature-complete release.
 VERSION="${VERSION:-0.1.0}"
 BUILD="${BUILD:-1}"
-APP_NAME="ZeroServer Control"
+CONFIGURATION="${CONFIGURATION:-release}"
 EXECUTABLE_NAME="ZeroServerControl"
 DIST_DIR="dist"
+
+case "$CONFIGURATION" in
+    release)
+        BUILD_FLAGS="-c release"
+        BUILD_DIR=".build/release"
+        APP_NAME="ZeroServer Control"
+        ;;
+    debug)
+        BUILD_FLAGS=""
+        BUILD_DIR=".build/debug"
+        APP_NAME="ZeroServer Control (Debug)"
+        ;;
+    *)
+        echo "CONFIGURATION must be 'release' or 'debug' (got: $CONFIGURATION)" >&2
+        exit 1
+        ;;
+esac
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 
-echo "==> swift build -c release"
-swift build -c release --product "$EXECUTABLE_NAME"
+echo "==> swift build $BUILD_FLAGS"
+swift build $BUILD_FLAGS --product "$EXECUTABLE_NAME"
 
 echo "==> Assembling $APP_BUNDLE"
 rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
 
-cp ".build/release/$EXECUTABLE_NAME" "$APP_BUNDLE/Contents/MacOS/$EXECUTABLE_NAME"
+cp "$BUILD_DIR/$EXECUTABLE_NAME" "$APP_BUNDLE/Contents/MacOS/$EXECUTABLE_NAME"
 
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" \
     "Packaging/Info.plist" > "$APP_BUNDLE/Contents/Info.plist"
@@ -66,7 +99,7 @@ cp Sources/ZeroServerControl/Resources/Logo/*.png "$APP_BUNDLE/Contents/Resource
 # from Sources/ - and copy every *.lproj SPM produced there (its folder
 # names may be lowercased, e.g. "pt-br.lproj" for "pt-BR" - copy verbatim
 # rather than assuming a specific casing).
-RESOURCE_BUNDLE=".build/release/${EXECUTABLE_NAME}_${EXECUTABLE_NAME}.bundle"
+RESOURCE_BUNDLE="$BUILD_DIR/${EXECUTABLE_NAME}_${EXECUTABLE_NAME}.bundle"
 for lproj in "$RESOURCE_BUNDLE"/*.lproj; do
     [ -d "$lproj" ] || continue
     cp -R "$lproj" "$APP_BUNDLE/Contents/Resources/"
