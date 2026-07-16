@@ -60,7 +60,6 @@ struct MenuContentView: View {
             DispatchQueue.main.async {
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: DashboardWindow.id)
-                WindowForegroundRequest.post(windowID: DashboardWindow.id)
             }
         }
         // A session that silently expires (background refresh failure —
@@ -74,7 +73,6 @@ struct MenuContentView: View {
             DispatchQueue.main.async {
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: AccountLoginWindow.id)
-                WindowForegroundRequest.post(windowID: AccountLoginWindow.id)
             }
         }
     }
@@ -101,11 +99,9 @@ struct MenuContentView: View {
                 NSApp.activate(ignoringOtherApps: true)
                 if case .signedIn = session.state {
                     openWindow(id: DashboardWindow.id)
-                    WindowForegroundRequest.post(windowID: DashboardWindow.id)
                 } else {
                     pendingDashboardOpen = true
                     openWindow(id: AccountLoginWindow.id)
-                    WindowForegroundRequest.post(windowID: AccountLoginWindow.id)
                 }
             }
         }
@@ -137,7 +133,6 @@ struct MenuContentView: View {
             DispatchQueue.main.async {
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: SettingsWindow.id)
-                WindowForegroundRequest.post(windowID: SettingsWindow.id)
             }
         }
     }

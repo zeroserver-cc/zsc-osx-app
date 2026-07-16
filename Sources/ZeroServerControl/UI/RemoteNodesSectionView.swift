@@ -54,7 +54,6 @@ struct RemoteNodesSectionView: View {
                 DispatchQueue.main.async {
                     NSApp.activate(ignoringOtherApps: true)
                     openWindow(id: AccountLoginWindow.id)
-                    WindowForegroundRequest.post(windowID: AccountLoginWindow.id)
                 }
             }
         }

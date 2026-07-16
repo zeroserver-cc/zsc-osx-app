@@ -68,7 +68,7 @@ struct ZeroServerControlApp: App {
         // there's nothing to show a login form in otherwise.
         Window("Sign In to ZeroServer", id: AccountLoginWindow.id) {
             LoginView(session: accountSession)
-                .forceForegroundOnFirstAppearance(windowID: AccountLoginWindow.id)
+                .forceForegroundOnFirstAppearance()
         }
         .windowResizability(.contentSize)
 
@@ -79,7 +79,7 @@ struct ZeroServerControlApp: App {
         // session ran into elsewhere.
         Window("Settings", id: SettingsWindow.id) {
             SettingsView(agent: agent, loginItems: loginItems, session: accountSession)
-                .forceForegroundOnFirstAppearance(windowID: SettingsWindow.id)
+                .forceForegroundOnFirstAppearance()
         }
         .windowResizability(.contentSize)
 
@@ -92,7 +92,7 @@ struct ZeroServerControlApp: App {
         // those two fixed-size forms.
         Window("Dashboard", id: DashboardWindow.id) {
             DashboardView(session: accountSession, remoteNodes: remoteNodes, dashboard: dashboard)
-                .forceForegroundOnFirstAppearance(windowID: DashboardWindow.id)
+                .forceForegroundOnFirstAppearance()
         }
     }
 }
