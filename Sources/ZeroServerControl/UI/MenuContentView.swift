@@ -54,9 +54,14 @@ struct MenuContentView: View {
         .onChange(of: session.state) { newState in
             guard pendingDashboardOpen, case .signedIn = newState else { return }
             pendingDashboardOpen = false
-            NSApp.activate(ignoringOtherApps: true)
-            openWindow(id: DashboardWindow.id)
-            WindowForegroundRequest.post(windowID: DashboardWindow.id)
+            // Deferred — see dashboardMenuItem's doc comment on why every
+            // openWindow(id:) call originating from this NSMenu-hosted
+            // content can't run synchronously.
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: DashboardWindow.id)
+                WindowForegroundRequest.post(windowID: DashboardWindow.id)
+            }
         }
         // A session that silently expires (background refresh failure —
         // see AccountSession.expiredInBackground) leaves whatever window
@@ -66,9 +71,11 @@ struct MenuContentView: View {
         // same activation call every other openWindow(id:) site here uses.
         .onChange(of: session.expiredInBackground) { expired in
             guard expired else { return }
-            NSApp.activate(ignoringOtherApps: true)
-            openWindow(id: AccountLoginWindow.id)
-            WindowForegroundRequest.post(windowID: AccountLoginWindow.id)
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: AccountLoginWindow.id)
+                WindowForegroundRequest.post(windowID: AccountLoginWindow.id)
+            }
         }
     }
 
@@ -79,14 +86,27 @@ struct MenuContentView: View {
     /// the forced-login gate for that.
     private var dashboardMenuItem: some View {
         Button("Dashboard") {
-            NSApp.activate(ignoringOtherApps: true)
-            if case .signedIn = session.state {
-                openWindow(id: DashboardWindow.id)
-                WindowForegroundRequest.post(windowID: DashboardWindow.id)
-            } else {
-                pendingDashboardOpen = true
-                openWindow(id: AccountLoginWindow.id)
-                WindowForegroundRequest.post(windowID: AccountLoginWindow.id)
+            // Deferred to the next run-loop turn, NOT called synchronously
+            // inside this NSMenuItem's action: .menuBarExtraStyle(.menu)
+            // hosts this content inside a real, modal-tracking NSMenu.
+            // Calling openWindow(id:) synchronously here can race the
+            // menu's own dismissal — the new window appears, but the menu's
+            // modal keyboard tracking loop is still alive underneath it,
+            // silently swallowing every keystroke (with an audible system
+            // beep for each one, since none of them match a menu shortcut)
+            // instead of ever reaching the new window's first responder.
+            // Letting this click's own dismissal finish first, then running
+            // on the next tick, avoids that race entirely.
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
+                if case .signedIn = session.state {
+                    openWindow(id: DashboardWindow.id)
+                    WindowForegroundRequest.post(windowID: DashboardWindow.id)
+                } else {
+                    pendingDashboardOpen = true
+                    openWindow(id: AccountLoginWindow.id)
+                    WindowForegroundRequest.post(windowID: AccountLoginWindow.id)
+                }
             }
         }
     }
@@ -112,9 +132,13 @@ struct MenuContentView: View {
 
     private var openSettingsButton: some View {
         Button("Settings…") {
-            NSApp.activate(ignoringOtherApps: true)
-            openWindow(id: SettingsWindow.id)
-            WindowForegroundRequest.post(windowID: SettingsWindow.id)
+            // Deferred — see dashboardMenuItem's doc comment on the
+            // NSMenu-tracking race this avoids.
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: SettingsWindow.id)
+                WindowForegroundRequest.post(windowID: SettingsWindow.id)
+            }
         }
     }
 
