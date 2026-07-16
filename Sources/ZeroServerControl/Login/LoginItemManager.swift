@@ -17,10 +17,26 @@ import ServiceManagement
 final class LoginItemManager: ObservableObject {
 
     @Published private(set) var isEnabled: Bool
-    @Published private(set) var isAvailable: Bool = true
+    /// Whether this environment can use SMAppService at all — decided ONCE,
+    /// up front, from whether this process has a real bundle identifier
+    /// (an unbundled `swift run` executable has no Info.plist, so this is
+    /// reliably nil there — same signal SettingsView.versionString already
+    /// uses to detect the same situation). Previously this started `true`
+    /// and only flipped to `false` as a side effect of a failed
+    /// register()/unregister() call — which meant the toggle appeared,
+    /// the user clicked it, the call failed (as it always does unbundled),
+    /// and the whole section vanished out from under them at that exact
+    /// moment. Deciding this up front means it simply never appears in a
+    /// dev build, instead of appearing and then disappearing on first use.
+    @Published private(set) var isAvailable: Bool
+    /// Set only when register()/unregister() fails while still available
+    /// (a genuine, unexpected SMAppService error in a real packaged .app) —
+    /// SettingsView surfaces this instead of the toggle silently reverting.
+    @Published private(set) var lastErrorMessage: String?
 
     init() {
         isEnabled = SMAppService.mainApp.status == .enabled
+        isAvailable = Bundle.main.bundleIdentifier != nil
     }
 
     func setEnabled(_ enabled: Bool) {
@@ -31,14 +47,14 @@ final class LoginItemManager: ObservableObject {
                 try SMAppService.mainApp.unregister()
             }
             isEnabled = SMAppService.mainApp.status == .enabled
-            isAvailable = true
+            lastErrorMessage = nil
         } catch {
-            // Most commonly hit when running unbundled (via `swift run`)
-            // rather than as a real signed .app. We don't crash or show a
-            // scary error for this — we just mark the feature unavailable
-            // so MenuContentView can hide the toggle.
-            isAvailable = false
+            // A real failure in an environment we already know supports
+            // SMAppService — surface it, but don't hide the toggle over it;
+            // isAvailable is a one-time environment fact, not a reaction to
+            // this specific attempt.
             isEnabled = SMAppService.mainApp.status == .enabled
+            lastErrorMessage = error.localizedDescription
         }
     }
 }

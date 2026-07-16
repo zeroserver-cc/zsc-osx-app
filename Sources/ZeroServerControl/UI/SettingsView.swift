@@ -45,6 +45,9 @@ struct SettingsView: View {
                     get: { loginItems.isEnabled },
                     set: { loginItems.setEnabled($0) }
                 ))
+                if let message = loginItems.lastErrorMessage {
+                    Text(message).font(.caption).foregroundStyle(.red)
+                }
                 Divider()
             }
 

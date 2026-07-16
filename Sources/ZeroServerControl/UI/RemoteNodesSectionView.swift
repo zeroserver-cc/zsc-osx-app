@@ -43,6 +43,7 @@ struct RemoteNodesSectionView: View {
             Button("Sign In…") {
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: AccountLoginWindow.id)
+                WindowForegroundRequest.post(windowID: AccountLoginWindow.id)
             }
         }
     }
