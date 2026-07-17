@@ -17,6 +17,14 @@ final class AccountSession: ObservableObject, TokenSource {
 
     @Published private(set) var state: State = .signedOut
     @Published var lastErrorMessage: String?
+    /// True only when a sign-out was caused by a FAILED background refresh
+    /// (the access token silently expired and there was no valid refresh
+    /// token left to renew it) — never true for a user-initiated Sign Out.
+    /// MenuContentView observes this to reopen the Login window on its own,
+    /// instead of leaving the user stuck on a passive "please sign in"
+    /// placeholder inside whatever window happened to be open (Dashboard,
+    /// node list) when the session quietly expired.
+    @Published private(set) var expiredInBackground = false
 
     /// In-memory only — never written to disk. See CredentialStore's doc
     /// comment for why only the refresh token is persisted.
@@ -75,6 +83,23 @@ final class AccountSession: ObservableObject, TokenSource {
     }
 
     func signOut() {
+        clearCredentialsAndSignOut()
+        // A deliberate, user-initiated sign-out is never "expired" — clears
+        // any stale flag from a previous background expiry so a fresh
+        // manual sign-out doesn't spuriously trigger the auto-reopen-Login
+        // behavior that flag drives.
+        expiredInBackground = false
+    }
+
+    /// Same cleanup as signOut(), but marks `expiredInBackground` instead
+    /// of clearing it — used only by attemptRefresh's failure path below,
+    /// where the user did nothing; the session just quietly ran out.
+    private func signOutFromExpiredRefresh() {
+        clearCredentialsAndSignOut()
+        expiredInBackground = true
+    }
+
+    private func clearCredentialsAndSignOut() {
         sessionEpoch += 1
         CredentialStore.clear()
         accessToken = nil
@@ -120,14 +145,19 @@ final class AccountSession: ObservableObject, TokenSource {
             guard sessionEpoch == expectedEpoch else { return false }
             // Refresh failing means the refresh token itself is dead
             // (expired ~7d, or revoked) — there is no path back except
-            // signing in again.
-            signOut()
+            // signing in again. Uses the "expired" variant, not signOut()
+            // directly: this is the one path where the user did nothing —
+            // see expiredInBackground's doc comment.
+            signOutFromExpiredRefresh()
             lastErrorMessage = PresentableError.sessionExpired
             return false
         }
     }
 
     private func apply(_ payload: AuthPayload) {
+        // Defensive: any successful sign-in or refresh means the session is
+        // no longer in an expired state, regardless of what it was before.
+        expiredInBackground = false
         accessToken = payload.accessToken
         try? CredentialStore.save(StoredSession(
             refreshToken: payload.refreshToken,

@@ -61,6 +61,39 @@ func runAccountSessionTests(_ t: TestRunner) async {
         t.expectEqual(refreshCallCount, 1, "two concurrent refreshAccessToken() calls must result in exactly one network request")
     }
 
+    await t.run("a failed background refresh sets expiredInBackground, distinct from a user-initiated signOut()") {
+        let session = makeSessionWithStoredRefreshToken()
+        try? await Task.sleep(for: .milliseconds(50))
+        t.expect(session.expiredInBackground == false, "sanity check: a freshly-restored session isn't already flagged as expired")
+
+        MockURLProtocol.requestHandler = { request in
+            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            let body = #"{"data":null,"errors":[{"message":"jwt expired","extensions":{"code":"UNAUTHENTICATED"}}]}"#
+            return (response, body.data(using: .utf8)!)
+        }
+        _ = await session.refreshAccessToken()
+
+        t.expectEqual(session.state, .signedOut)
+        t.expect(session.expiredInBackground, "a refresh that fails on its own (no user action) must flag expiredInBackground")
+
+        // A user explicitly clicking "Sign Out" afterwards must clear the
+        // flag — it's a deliberate action, not a session that expired out
+        // from under them, and MenuContentView's auto-reopen-Login should
+        // not fire for it.
+        session.signOut()
+        t.expect(!session.expiredInBackground, "an explicit signOut() must clear expiredInBackground, not just the earlier failed refresh")
+    }
+
+    await t.run("signOut() called directly (simulating the Sign Out button) never sets expiredInBackground") {
+        let session = makeSessionWithStoredRefreshToken()
+        try? await Task.sleep(for: .milliseconds(50))
+
+        session.signOut()
+
+        t.expectEqual(session.state, .signedOut)
+        t.expect(!session.expiredInBackground, "a direct, user-initiated signOut() must never look like a background expiry")
+    }
+
     await t.run("signOut() during an in-flight refresh prevents that refresh from resurrecting .signedIn") {
         let session = makeSessionWithStoredRefreshToken()
         try? await Task.sleep(for: .milliseconds(50))

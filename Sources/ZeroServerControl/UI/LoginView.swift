@@ -13,6 +13,15 @@ struct LoginView: View {
     @ObservedObject var session: AccountSession
     @State private var email = ""
     @State private var password = ""
+    /// Defensive fix for a reported bug: in a multi-Space setup, this
+    /// window could appear without ever becoming the key window (see
+    /// WindowActivationAccessor.swift for the actual root-cause fix), which
+    /// meant no responder ever had keyboard focus — the fields looked
+    /// present but silently ignored typing. Explicitly focusing Email the
+    /// moment this view appears means there's always a responder ready the
+    /// instant the window does become key, rather than depending on the
+    /// user clicking into the field first.
+    @FocusState private var emailFieldIsFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -28,11 +37,13 @@ struct LoginView: View {
                 TextField("Email", text: $email)
                     .textContentType(.username)
                     .textFieldStyle(.roundedBorder)
+                    .focused($emailFieldIsFocused)
                 SecureField("Password", text: $password)
                     .textContentType(.password)
                     .textFieldStyle(.roundedBorder)
             }
             .padding(.vertical, 4)
+            .onAppear { emailFieldIsFocused = true }
 
             if let error = session.lastErrorMessage {
                 Text(error).font(.caption).foregroundStyle(.red)

@@ -8,17 +8,32 @@ import AppKit
 /// keeps the UI feeling like a normal, "light and objective" system menu
 /// (think Wi-Fi/Bluetooth) instead of a custom floating panel.
 ///
-/// Deliberately just nodes + exit points now — everything that isn't a
-/// node decision (account, preferences, about, this Mac's own agent) lives
-/// in the Settings window (see SettingsView.swift) instead, opened via
-/// openWindow(id:) the same way LoginView already is.
+/// Deliberately just the Dashboard entry point, nodes, and exit points —
+/// everything that isn't a node decision (account, preferences, about, this
+/// Mac's own agent) lives in the Settings window (see SettingsView.swift)
+/// instead, opened via openWindow(id:) the same way LoginView already is.
 struct MenuContentView: View {
     @ObservedObject var session: AccountSession
     @ObservedObject var remoteNodes: RemoteNodesController
     @ObservedObject var agent: AgentController
+    @ObservedObject var dashboard: DashboardController
     @Environment(\.openWindow) private var openWindow
 
+    /// Set when "Dashboard" is tapped while signed out, instead of opening
+    /// the Dashboard directly: it forces the sign-in window open first, and
+    /// this flag is what tells `onChange(of: session.state)` below to open
+    /// the Dashboard automatically the moment sign-in actually succeeds,
+    /// rather than requiring a second click on this same button. Lives here
+    /// (not on AccountSession) so the auth model itself stays free of any
+    /// UI-navigation intent — same separation of concerns already drawn
+    /// between APIClient (networking) and AccountSession (auth state).
+    @State private var pendingDashboardOpen = false
+
     var body: some View {
+        dashboardMenuItem
+
+        Divider()
+
         RemoteNodesSectionView(session: session, remoteNodes: remoteNodes)
 
         Divider()
@@ -31,6 +46,65 @@ struct MenuContentView: View {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q")
+        // Mirrors the exact idiom RemoteNodesSectionView already uses to
+        // react to a sign-in transition (its own onChange there refreshes
+        // the node list) — here, a sign-in that happened because the user
+        // clicked "Dashboard" while signed out finishes by opening the
+        // Dashboard, with no second click required.
+        .onChange(of: session.state) { newState in
+            guard pendingDashboardOpen, case .signedIn = newState else { return }
+            pendingDashboardOpen = false
+            // Deferred — see dashboardMenuItem's doc comment on why every
+            // openWindow(id:) call originating from this NSMenu-hosted
+            // content can't run synchronously.
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: DashboardWindow.id)
+            }
+        }
+        // A session that silently expires (background refresh failure —
+        // see AccountSession.expiredInBackground) leaves whatever window
+        // was open (Dashboard, node list) showing a passive "please sign
+        // in" placeholder the user has to notice and click through. This
+        // reopens Login proactively instead, the moment that happens —
+        // same activation call every other openWindow(id:) site here uses.
+        .onChange(of: session.expiredInBackground) { expired in
+            guard expired else { return }
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: AccountLoginWindow.id)
+            }
+        }
+    }
+
+    /// Top of the dropdown, ahead of the node list and Settings — the
+    /// single entry point into the app's main resource view. Everything
+    /// this button leads to (the node list already visible one section
+    /// down, and the Dashboard itself) requires being signed in; this is
+    /// the forced-login gate for that.
+    private var dashboardMenuItem: some View {
+        Button("Dashboard") {
+            // Deferred to the next run-loop turn, NOT called synchronously
+            // inside this NSMenuItem's action: .menuBarExtraStyle(.menu)
+            // hosts this content inside a real, modal-tracking NSMenu.
+            // Calling openWindow(id:) synchronously here can race the
+            // menu's own dismissal — the new window appears, but the menu's
+            // modal keyboard tracking loop is still alive underneath it,
+            // silently swallowing every keystroke (with an audible system
+            // beep for each one, since none of them match a menu shortcut)
+            // instead of ever reaching the new window's first responder.
+            // Letting this click's own dismissal finish first, then running
+            // on the next tick, avoids that race entirely.
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
+                if case .signedIn = session.state {
+                    openWindow(id: DashboardWindow.id)
+                } else {
+                    pendingDashboardOpen = true
+                    openWindow(id: AccountLoginWindow.id)
+                }
+            }
+        }
     }
 
     /// A quiet nudge, not an alarm: this Mac's own agent needing attention
@@ -54,8 +128,12 @@ struct MenuContentView: View {
 
     private var openSettingsButton: some View {
         Button("Settings…") {
-            NSApp.activate(ignoringOtherApps: true)
-            openWindow(id: SettingsWindow.id)
+            // Deferred — see dashboardMenuItem's doc comment on the
+            // NSMenu-tracking race this avoids.
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: SettingsWindow.id)
+            }
         }
     }
 

@@ -96,6 +96,27 @@ final class APIClient {
         return result.forceStopMachine
     }
 
+    /// Backend hard-caps and clamps `sinceHours` to [1, 24] server-side
+    /// (telemetry itself is pruned after 24h) — passing anything outside
+    /// that range is harmless, just clamped away silently by the server.
+    func machineTelemetry(machineId: String, sinceHours: Int) async throws -> [MachineUsage] {
+        let result: TelemetryEnvelope = try await executeAuthenticated(
+            operationName: "MachineTelemetry",
+            query: Self.machineTelemetryQuery,
+            variables: ["machineId": machineId, "sinceHours": sinceHours]
+        )
+        return result.machineTelemetry
+    }
+
+    func machineStatusEvents(machineId: String, sinceHours: Int, limit: Int) async throws -> [MachineStatusEvent] {
+        let result: StatusEventsEnvelope = try await executeAuthenticated(
+            operationName: "MachineStatusEvents",
+            query: Self.machineStatusEventsQuery,
+            variables: ["machineId": machineId, "sinceHours": sinceHours, "limit": limit]
+        )
+        return result.machineStatusEvents
+    }
+
     // MARK: The retry-once-on-auth-failure wrapper
     //
     // Concrete retry policy:
@@ -167,6 +188,8 @@ final class APIClient {
     private struct PauseEnvelope: Decodable { let pauseMachine: RemoteNode }
     private struct ResumeEnvelope: Decodable { let resumeMachine: RemoteNode }
     private struct ForceStopEnvelope: Decodable { let forceStopMachine: RemoteNode }
+    private struct TelemetryEnvelope: Decodable { let machineTelemetry: [MachineUsage] }
+    private struct StatusEventsEnvelope: Decodable { let machineStatusEvents: [MachineStatusEvent] }
 
     private static let loginMutation = """
     mutation Login($input: LoginInput!) {
@@ -214,6 +237,22 @@ final class APIClient {
     private static let forceStopMutation = """
     mutation ForceStopMachine($id: ID!) {
       forceStopMachine(id: $id) { \(machineFields) }
+    }
+    """
+
+    private static let machineTelemetryQuery = """
+    query MachineTelemetry($machineId: ID!, $sinceHours: Int!) {
+      machineTelemetry(machineId: $machineId, sinceHours: $sinceHours) {
+        cpuPercent memoryPercent diskPercent recordedAt
+      }
+    }
+    """
+
+    private static let machineStatusEventsQuery = """
+    query MachineStatusEvents($machineId: ID!, $sinceHours: Int, $limit: Int) {
+      machineStatusEvents(machineId: $machineId, sinceHours: $sinceHours, limit: $limit) {
+        id machineId previousStatus newStatus source reason createdAt
+      }
     }
     """
 }

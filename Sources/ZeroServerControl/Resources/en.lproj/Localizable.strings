@@ -6,9 +6,23 @@
    for the Portuguese translations these pair with. */
 
 /* MenuContentView.swift */
+"Dashboard" = "Dashboard";
 "Settings…" = "Settings…";
 "Quit ZeroServer Control" = "Quit ZeroServer Control";
 "menu.settings_hint.unknown" = "This Mac's agent needs attention.";
+
+/* DashboardView.swift */
+"Sign in to view your Dashboard." = "Sign in to view your Dashboard.";
+"Select a node." = "Select a node.";
+"Last 24 Hours" = "Last 24 Hours";
+"Recent Activity" = "Recent Activity";
+"No recent status changes." = "No recent status changes.";
+
+/* NodeUsageChartView.swift */
+"No data yet." = "No data yet.";
+
+/* MachineStatusEvent.swift — transitionLabel (%@ %@ = previousStatus.label, newStatus.label) */
+"dashboard.status_transition_format" = "%@ → %@";
 
 /* SettingsView.swift */
 "Settings" = "Settings";
@@ -24,6 +38,7 @@
 "connection.production" = "Production";
 "connection.local" = "Local";
 "about.version_format" = "Version %@ (%@)";
+"about.dev_build" = "Development Build (unbundled)";
 
 /* RemoteNodesSectionView.swift */
 "Signing in…" = "Signing in…";

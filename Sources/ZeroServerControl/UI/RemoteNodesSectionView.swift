@@ -41,8 +41,20 @@ struct RemoteNodesSectionView: View {
             Text("Sign in to control your ZeroServer nodes remotely.")
                 .font(.callout)
             Button("Sign In…") {
-                NSApp.activate(ignoringOtherApps: true)
-                openWindow(id: AccountLoginWindow.id)
+                // Deferred — this content is hosted inside the menu bar's
+                // NSMenu (.menuBarExtraStyle(.menu)); calling openWindow(id:)
+                // synchronously inside an NSMenuItem's action can race the
+                // menu's own dismissal, leaving its modal keyboard-tracking
+                // loop alive underneath the new window — every keystroke
+                // then bounces off the menu (audible system beep) instead
+                // of ever reaching the window's first responder. See
+                // MenuContentView.dashboardMenuItem's doc comment for the
+                // full explanation — same fix, same reason, applied here
+                // since this button lives in the same NSMenu-hosted tree.
+                DispatchQueue.main.async {
+                    NSApp.activate(ignoringOtherApps: true)
+                    openWindow(id: AccountLoginWindow.id)
+                }
             }
         }
     }
