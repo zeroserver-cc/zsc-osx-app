@@ -84,6 +84,10 @@ jobs:
           name: zeroserver-control-app-${{ github.sha }}
           path: dist/
           if-no-files-found: error
+          # Reviewer convenience build, not a release asset; a week covers the
+          # review cycle while bounding artifact storage (org quota incident,
+          # 2026-08).
+          retention-days: 7
 
       # Only meaningful on a tag push (see the `tags: ['v*']` trigger
       # above) — re-reads the actual built Info.plist rather than assuming
